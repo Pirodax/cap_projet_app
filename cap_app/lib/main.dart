@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'widgets/bottom_navbar.dart' ;
+import 'screens/home_screen.dart' ;
+import 'screens/profile_screen.dart' ;
+import 'screens/historique_screen.dart';
+
 
 void main() => runApp(const MyApp());
 
@@ -8,23 +13,43 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Demo Flutter',
-      theme: ThemeData(
-        colorSchemeSeed: Colors.indigo,
-      ),
-      home: const HomeScreen(),
+      debugShowCheckedModeBanner: false,
+      title: 'cap Projet App',
+      theme: ThemeData(primarySwatch: Colors.indigo),
+      home: const MainPage(),
     );
   }
 }
+class MainPage extends StatefulWidget {
+  const MainPage({super.key});
 
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+  @override
+  State<MainPage> createState() => _MainPageState();
+}
+
+class _MainPageState extends State<MainPage> {
+  int _selectedIndex = 0;
+
+  final List<Widget> _pages = const [
+    HomeScreen(),
+    HistoriqueScreen(),
+    ProfileScreen(),
+  ];
+
+  void _onItemTapped(int index) => setState(() => _selectedIndex = index);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Hello Flutter')),
-      body: const Center(child: Text('La config est good ouf ')),
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _pages,
+      ),
+
+      bottomNavigationBar: BottomNavBar(
+        selectedIndex: _selectedIndex,
+        onItemTapped: _onItemTapped,
+      ),
     );
   }
 }
