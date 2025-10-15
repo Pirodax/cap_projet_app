@@ -13,11 +13,10 @@ class _SignInScreenState extends State<SignInScreen> {
   final _emailCtrl = TextEditingController(text: 'demo@local.dev');
   final _pwdCtrl = TextEditingController(text: 'Password123!');
   bool _obscure = true;
-  bool _remember = true;
   bool _loading = false;
   String? _error;
 
-  final _repo = _AuthRepository(); // faux backend local
+  final _repo = _AuthRepository(); // Faux backend local
 
   @override
   void dispose() {
@@ -35,7 +34,7 @@ class _SignInScreenState extends State<SignInScreen> {
     try {
       await _repo.signIn(email: _emailCtrl.text, password: _pwdCtrl.text);
       if (!mounted) return;
-      // Redirection vers la page principale (définis la route '/main' dans MaterialApp)
+      // Redirection vers la page principale
       Navigator.of(context).pushReplacementNamed('/main');
     } on _AuthException catch (e) {
       setState(() => _error = e.message);
@@ -71,20 +70,11 @@ class _SignInScreenState extends State<SignInScreen> {
             constraints: const BoxConstraints(maxWidth: 460),
             child: Padding(
               padding: const EdgeInsets.all(18),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface.withOpacity(0.7),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.4)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.14),
-                      blurRadius: 28,
-                      spreadRadius: -8,
-                      offset: const Offset(0, 18),
-                    )
-                  ],
-                ),
+              child: Card(
+                elevation: 8,
+                shadowColor: Colors.black.withOpacity(0.3),
+                color: cs.surface.withOpacity(0.85),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
                   child: Form(
@@ -92,7 +82,7 @@ class _SignInScreenState extends State<SignInScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const _LogoTitle(),
+                        Text('Se connecter', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
                         const SizedBox(height: 22),
                         TextFormField(
                           controller: _emailCtrl,
@@ -100,7 +90,6 @@ class _SignInScreenState extends State<SignInScreen> {
                           autofillHints: const [AutofillHints.username, AutofillHints.email],
                           decoration: const InputDecoration(
                             labelText: 'Email',
-                            hintText: 'you@example.com',
                             prefixIcon: Icon(Icons.email_outlined),
                           ),
                           validator: (v) {
@@ -118,7 +107,6 @@ class _SignInScreenState extends State<SignInScreen> {
                           autofillHints: const [AutofillHints.password],
                           decoration: InputDecoration(
                             labelText: 'Mot de passe',
-                            hintText: '••••••••••',
                             prefixIcon: const Icon(Icons.lock_outline),
                             suffixIcon: IconButton(
                               tooltip: _obscure ? 'Afficher' : 'Masquer',
@@ -134,24 +122,11 @@ class _SignInScreenState extends State<SignInScreen> {
                           },
                           onFieldSubmitted: (_) => _submit(),
                         ),
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            Checkbox(
-                              value: _remember,
-                              onChanged: (v) => setState(() => _remember = v ?? false),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                            ),
-                            const Text('Se souvenir de moi'),
-                            const Spacer(),
-                            TextButton(onPressed: () {}, child: const Text('Mot de passe oublié ?')),
-                          ],
-                        ),
                         if (_error != null) ...[
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 14),
                           _ErrorBanner(message: _error!),
                         ],
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 24),
                         SizedBox(
                           width: double.infinity,
                           height: 52,
@@ -162,30 +137,6 @@ class _SignInScreenState extends State<SignInScreen> {
                                 height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2.4))
                                 : const Text('Se connecter'),
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        const _DividerWithText(text: 'ou'),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: () {},
-                                icon: const Icon(Icons.apple),
-                                label: const Text('Apple'),
-                                style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: () {},
-                                icon: const Icon(Icons.alternate_email),
-                                label: const Text('SAML/SSO'),
-                                style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-                              ),
-                            ),
-                          ],
                         ),
                         const SizedBox(height: 14),
                         Row(
@@ -228,35 +179,6 @@ class _AuthException implements Exception {
 }
 
 /// --- Petits widgets UI -------------------------------------------------
-class _LogoTitle extends StatelessWidget {
-  const _LogoTitle();
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Column(
-      children: [
-        Container(
-          height: 58,
-          width: 58,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(
-              colors: [cs.primary, cs.tertiary],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: const Icon(Icons.lock_open_rounded, color: Colors.white, size: 32),
-        ),
-        const SizedBox(height: 12),
-        Text('Bienvenue 👋', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
-        const SizedBox(height: 4),
-        Text('Connecte-toi pour continuer', style: Theme.of(context).textTheme.bodyMedium),
-      ],
-    );
-  }
-}
 
 class _ErrorBanner extends StatelessWidget {
   final String message;
@@ -280,26 +202,6 @@ class _ErrorBanner extends StatelessWidget {
           Expanded(child: Text(message)),
         ],
       ),
-    );
-  }
-}
-
-class _DividerWithText extends StatelessWidget {
-  final String text;
-  const _DividerWithText({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Row(
-      children: [
-        Expanded(child: Divider(color: cs.outlineVariant)),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Text(text, style: Theme.of(context).textTheme.labelMedium),
-        ),
-        Expanded(child: Divider(color: cs.outlineVariant)),
-      ],
     );
   }
 }
