@@ -1,3 +1,4 @@
+import 'package:cap_app/screens/SignUp_screen.dart';
 import 'package:flutter/material.dart';
 import 'widgets/bottom_navbar.dart' ;
 import 'screens/home_screen.dart' ;
@@ -15,9 +16,27 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'cap Projet App',
-      theme: ThemeData(primarySwatch: Colors.indigo),
-      home: SignInScreen(),
+      theme: ThemeData(
+        primarySwatch: Colors.indigo,
+        // Modern theme setup
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
+        inputDecorationTheme: InputDecorationTheme(
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          filled: true,
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+      ),
+      // 1. Point d'entrée de l'application
+      initialRoute: '/',
+      // 2. Définition des routes
       routes: {
+        '/': (_) => const SignInScreen(),
+        '/signup': (_) => const SignUpScreen(),
         '/main': (_) => const MainPage(),
       },
     );

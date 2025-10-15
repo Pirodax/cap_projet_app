@@ -46,6 +46,10 @@ class _SignInScreenState extends State<SignInScreen> {
     }
   }
 
+  void _goToSignUp() {
+    Navigator.of(context).pushNamed('/signup');
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -167,7 +171,7 @@ class _SignInScreenState extends State<SignInScreen> {
                             Expanded(
                               child: OutlinedButton.icon(
                                 onPressed: () {},
-                                icon: const Icon(Icons.apple_outlined),
+                                icon: const Icon(Icons.apple),
                                 label: const Text('Apple'),
                                 style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
                               ),
@@ -188,7 +192,7 @@ class _SignInScreenState extends State<SignInScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             const Text("Nouveau ?"),
-                            TextButton(onPressed: () {}, child: const Text("Créer un compte")),
+                            TextButton(onPressed: _goToSignUp, child: const Text("Créer un compte")),
                           ],
                         ),
                       ],
