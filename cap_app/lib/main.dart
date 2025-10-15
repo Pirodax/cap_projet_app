@@ -3,7 +3,7 @@ import 'widgets/bottom_navbar.dart' ;
 import 'screens/home_screen.dart' ;
 import 'screens/profile_screen.dart' ;
 import 'screens/historique_screen.dart';
-
+import 'screens/SignIn_screen.dart';
 
 void main() => runApp(const MyApp());
 
@@ -16,7 +16,10 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'cap Projet App',
       theme: ThemeData(primarySwatch: Colors.indigo),
-      home: const MainPage(),
+      home: SignInScreen(),
+      routes: {
+        '/main': (_) => const MainPage(),
+      },
     );
   }
 }

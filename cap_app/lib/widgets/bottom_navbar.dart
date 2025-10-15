@@ -19,7 +19,6 @@ class BottomNavBar extends StatelessWidget {
         BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Accueil'),
         BottomNavigationBarItem(icon: Icon(Icons.history), label: 'historique'),
         BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
-
       ],
     );
   }
