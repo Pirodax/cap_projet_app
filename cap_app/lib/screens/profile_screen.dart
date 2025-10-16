@@ -1,3 +1,4 @@
+import 'plans_screen.dart';
 import 'package:flutter/material.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -60,9 +61,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
               value: _mutuelle,
               hint: const Text('Mutuelle'),
               onChanged: (String? newValue) {
-                setState(() {
-                  _mutuelle = newValue;
-                });
+                if (newValue != null) {
+                  setState(() {
+                    _mutuelle = newValue;
+                  });
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          PlansScreen(mutuelleName: newValue),
+                    ),
+                  );
+                }
               },
               items: <String>['MGEN', 'Alan', 'Axa', 'Mutualia']
                   .map<DropdownMenuItem<String>>((String value) {
