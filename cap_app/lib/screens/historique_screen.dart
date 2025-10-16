@@ -7,7 +7,7 @@ class HistoriqueScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Scaffold(
       body: Center(
-        child: Text('Page d’historique', style: TextStyle(fontSize: 22)),
+        child: Text('Page d’Historique', style: TextStyle(fontSize: 22)),
       ),
     );
   }
