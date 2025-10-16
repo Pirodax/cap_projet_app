@@ -1,22 +1,20 @@
-// lib/screens/SignIn_screen.dart
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/supabase/supabase_init.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
-
   @override
   State<SignInScreen> createState() => _SignInScreenState();
 }
 
 class _SignInScreenState extends State<SignInScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailCtrl = TextEditingController(text: 'demo@local.dev');
-  final _pwdCtrl = TextEditingController(text: 'Password123!');
+  final _emailCtrl = TextEditingController();
+  final _pwdCtrl = TextEditingController();
   bool _obscure = true;
   bool _loading = false;
   String? _error;
-
-  final _repo = _AuthRepository(); // Faux backend local
 
   @override
   void dispose() {
@@ -32,19 +30,34 @@ class _SignInScreenState extends State<SignInScreen> {
       _error = null;
     });
     try {
-      await _repo.signIn(email: _emailCtrl.text, password: _pwdCtrl.text);
-      if (!mounted) return;
-      // Redirection vers la page principale
-      Navigator.of(context).pushReplacementNamed('/main');
-    } on _AuthException catch (e) {
-      setState(() => _error = e.message);
+      final response = await supabase.auth.signInWithPassword(
+        email: _emailCtrl.text.trim(),
+        password: _pwdCtrl.text,
+      );
+      // Ajout de la navigation après une connexion réussie
+      if (mounted && response.user != null) {
+        // pushReplacementNamed empêche l'utilisateur de revenir à l'écran de connexion
+        Navigator.of(context).pushReplacementNamed('/main');
+      }
+    } on AuthException catch (e) {
+      setState(() {
+        final message = e.message.toLowerCase();
+        if (message.contains('invalid credentials')) {
+          _error = 'Email ou mot de passe incorrect.';
+        } else if (message.contains('email not confirmed')) {
+          _error = 'Compte non confirmé. Vérifie tes emails.';
+        } else {
+          _error = e.message;
+        }
+      });
     } catch (_) {
-      setState(() => _error = "Une erreur est survenue. Réessaie.");
+      setState(() => _error = "Erreur inattendue. Réessaie.");
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
+  // Méthode pour naviguer vers l'écran de création de compte
   void _goToSignUp() {
     Navigator.of(context).pushNamed('/signup');
   }
@@ -52,6 +65,8 @@ class _SignInScreenState extends State<SignInScreen> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final disabled = _loading;
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -59,7 +74,7 @@ class _SignInScreenState extends State<SignInScreen> {
             colors: [
               (cs.primary).withOpacity(0.12),
               (cs.tertiary).withOpacity(0.10),
-              (cs.surfaceVariant).withOpacity(0.08),
+              (cs.surfaceContainerHighest).withOpacity(0.08),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -82,10 +97,17 @@ class _SignInScreenState extends State<SignInScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text('Se connecter', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+                        Text(
+                          'Se connecter',
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
                         const SizedBox(height: 22),
                         TextFormField(
                           controller: _emailCtrl,
+                          enabled: !disabled,
                           keyboardType: TextInputType.emailAddress,
                           autofillHints: const [AutofillHints.username, AutofillHints.email],
                           decoration: const InputDecoration(
@@ -103,6 +125,7 @@ class _SignInScreenState extends State<SignInScreen> {
                         const SizedBox(height: 14),
                         TextFormField(
                           controller: _pwdCtrl,
+                          enabled: !disabled,
                           obscureText: _obscure,
                           autofillHints: const [AutofillHints.password],
                           decoration: InputDecoration(
@@ -110,14 +133,21 @@ class _SignInScreenState extends State<SignInScreen> {
                             prefixIcon: const Icon(Icons.lock_outline),
                             suffixIcon: IconButton(
                               tooltip: _obscure ? 'Afficher' : 'Masquer',
-                              onPressed: () => setState(() => _obscure = !_obscure),
-                              icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                              onPressed: disabled
+                                  ? null
+                                  : () => setState(() => _obscure = !_obscure),
+                              icon: Icon(
+                                _obscure
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
+                              ),
                             ),
                           ),
                           validator: (v) {
                             final value = v ?? '';
                             if (value.isEmpty) return 'Mot de passe requis';
-                            if (value.length < 8) return 'Au moins 8 caractères';
+                            // Correction de la validation : 8 caractères
+                            //if (value.length < 8) return 'Au moins 8 caractères';
                             return null;
                           },
                           onFieldSubmitted: (_) => _submit(),
@@ -131,10 +161,13 @@ class _SignInScreenState extends State<SignInScreen> {
                           width: double.infinity,
                           height: 52,
                           child: FilledButton(
-                            onPressed: _loading ? null : _submit,
+                            onPressed: disabled ? null : _submit,
                             child: _loading
                                 ? const SizedBox(
-                                height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2.4))
+                              height: 22,
+                              width: 22,
+                              child: CircularProgressIndicator(strokeWidth: 2.4),
+                            )
                                 : const Text('Se connecter'),
                           ),
                         ),
@@ -143,7 +176,11 @@ class _SignInScreenState extends State<SignInScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             const Text("Nouveau ?"),
-                            TextButton(onPressed: _goToSignUp, child: const Text("Créer un compte")),
+                            TextButton(
+                              // Correction: navigue vers la page de création de compte
+                              onPressed: disabled ? null : _goToSignUp,
+                              child: const Text("Créer un compte"),
+                            ),
                           ],
                         ),
                       ],
@@ -158,27 +195,6 @@ class _SignInScreenState extends State<SignInScreen> {
     );
   }
 }
-
-/// --- Faux backend local ------------------------------------------------
-class _AuthRepository {
-  static const _demoEmail = 'demo@local.dev';
-  static const _demoPwd = 'Password123!';
-
-  Future<void> signIn({required String email, required String password}) async {
-    await Future.delayed(const Duration(milliseconds: 600));
-    final ok = email.trim().toLowerCase() == _demoEmail && password == _demoPwd;
-    if (!ok) throw _AuthException('Identifiants invalides.');
-  }
-}
-
-class _AuthException implements Exception {
-  final String message;
-  _AuthException(this.message);
-  @override
-  String toString() => message;
-}
-
-/// --- Petits widgets UI -------------------------------------------------
 
 class _ErrorBanner extends StatelessWidget {
   final String message;
