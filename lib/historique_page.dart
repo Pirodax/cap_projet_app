@@ -474,11 +474,13 @@ class _HistoriquePageState extends State<HistoriquePage>
         Expanded(
           child: _buildStatCard(
             'Total économisé',
-            AnimatedBuilder(
-              animation: _animation,
-              builder: (context, child) {
+            TweenAnimationBuilder<double>(
+              duration: const Duration(milliseconds: 2000),
+              tween: Tween<double>(begin: 0, end: _totalEconomie),
+              curve: Curves.easeOut,
+              builder: (context, double value, child) {
                 return Text(
-                  '${(_totalEconomie * _animation.value).toStringAsFixed(0)}€',
+                  '${value.toStringAsFixed(0)}€',
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
