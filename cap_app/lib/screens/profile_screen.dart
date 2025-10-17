@@ -82,7 +82,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 30),
             const Text(
-              'Votre couverture santé:',
+              'Votre couverture santé : ',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
@@ -143,7 +143,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const Text('(si non afficher les démarches et conditions)'),
             const SizedBox(height: 20),
             const Text(
-              'Situation',
+              'Situation : ',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
@@ -191,7 +191,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             const SizedBox(height: 20),
             const Text(
-              'Département',
+              'Département : ',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
