@@ -2,7 +2,23 @@ import 'plans_screen.dart';
 import 'package:flutter/material.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final String? mutuelleName;
+  final String? planName;
+  final Function(String, String)? onPlanSelectionComplete;
+  final VoidCallback? onClearPlanSelection;
+  final String? estEtudiant;
+  final Function(String)? onSetEtudiantStatus;
+  final VoidCallback? onClearEtudiantStatus;
+
+  const ProfileScreen(
+      {super.key,
+      this.mutuelleName,
+      this.planName,
+      this.onPlanSelectionComplete,
+      this.onClearPlanSelection,
+      this.estEtudiant,
+      this.onSetEtudiantStatus,
+      this.onClearEtudiantStatus});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -10,7 +26,12 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   String? _mutuelle;
-  String? _estEtudiant;
+
+  @override
+  void initState() {
+    super.initState();
+    _mutuelle = widget.mutuelleName;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,38 +76,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
-            const Text('mutuel connecté ou non'),
-            const SizedBox(height: 20),
-            DropdownButtonFormField<String>(
-              value: _mutuelle,
-              hint: const Text('Mutuelle'),
-              onChanged: (String? newValue) {
-                if (newValue != null) {
-                  setState(() {
-                    _mutuelle = newValue;
-                  });
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          PlansScreen(mutuelleName: newValue),
-                    ),
+            if (widget.planName != null && widget.mutuelleName != null)
+              Row(
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Mutuelle: ${widget.mutuelleName}'),
+                      const SizedBox(height: 10),
+                      Text('Plan: ${widget.planName}'),
+                    ],
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.edit),
+                    onPressed: widget.onClearPlanSelection,
+                  )
+                ],
+              )
+            else
+              DropdownButtonFormField<String>(
+                value: _mutuelle,
+                hint: const Text('Mutuelle'),
+                onChanged: (String? newValue) {
+                  if (newValue != null) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PlansScreen(
+                          mutuelleName: newValue,
+                          onPlanSelectionComplete: widget.onPlanSelectionComplete!,
+                        ),
+                      ),
+                    );
+                  }
+                },
+                items: <String>['MGEN', 'Alan', 'Axa', 'Mutualia']
+                    .map<DropdownMenuItem<String>>((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
                   );
-                }
-              },
-              items: <String>['MGEN', 'Alan', 'Axa', 'Mutualia']
-                  .map<DropdownMenuItem<String>>((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
-              }).toList(),
-              decoration: InputDecoration(
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10.0),
+                }).toList(),
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10.0),
+                  ),
                 ),
               ),
-            ),
             const SizedBox(height: 20),
             const Text(
               'Carte vitale:',
@@ -110,27 +147,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
               keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 20),
-            DropdownButtonFormField<String>(
-              value: _estEtudiant,
-              hint: const Text('Étudiant ?'),
-              onChanged: (String? newValue) {
-                setState(() {
-                  _estEtudiant = newValue;
-                });
-              },
-              items: <String>['Oui', 'Non']
-                  .map<DropdownMenuItem<String>>((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
-              }).toList(),
-              decoration: InputDecoration(
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10.0),
+            if (widget.estEtudiant != null)
+              Row(
+                children: [
+                  Text('Étudiant: ${widget.estEtudiant}'),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.edit),
+                    onPressed: widget.onClearEtudiantStatus,
+                  )
+                ],
+              )
+            else
+              DropdownButtonFormField<String>(
+                hint: const Text('Étudiant ?'),
+                onChanged: (String? newValue) {
+                  if (newValue != null) {
+                    widget.onSetEtudiantStatus!(newValue);
+                  }
+                },
+                items: <String>['Oui', 'Non']
+                    .map<DropdownMenuItem<String>>((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                }).toList(),
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10.0),
+                  ),
                 ),
               ),
-            ),
             const SizedBox(height: 20),
             const Text(
               'Département',
