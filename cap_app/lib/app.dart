@@ -5,7 +5,8 @@ import 'features/auth/screens/sign_up_screen.dart' as auth;
 import 'screens/home_screen.dart';
 import 'screens/profile_screen.dart';
 import 'widgets/bottom_navbar.dart';
-import 'screens/historique_screen.dart';
+// NOUVEAU : Import de la page historique avec toutes les fonctionnalités
+import 'features/History/historique_page.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -51,7 +52,7 @@ class _MainPageState extends State<MainPage> {
 
   final List<Widget> _pages = const [
     HomeScreen(),
-    HistoriqueScreen(),
+    HistoriquePage(),
     ProfileScreen(),
   ];
 
