@@ -360,7 +360,6 @@ class _HistoriquePageState extends State<HistoriquePage>
         onRefresh: _loadData,
         child: _isLoading ? _buildSkeletonLoader() : _buildContent(filteredSimulations),
       ),
-      bottomNavigationBar: _buildBottomNav(),
     );
   }
 
