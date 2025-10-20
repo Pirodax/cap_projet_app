@@ -49,12 +49,36 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
   int _selectedIndex = 0;
+  String? _mutuelleName;
+  String? _planName;
+  String? _estEtudiant;
 
-  final List<Widget> _pages = const [
-    HomeScreen(),
-    HistoriquePage(),
-    ProfileScreen(),
-  ];
+  void _onPlanSelectionComplete(String mutuelle, String plan) {
+    setState(() {
+      _mutuelleName = mutuelle;
+      _planName = plan;
+      _selectedIndex = 2; // Assurez-vous que l'onglet de profil est actif
+    });
+  }
+
+  void _clearPlanSelection() {
+    setState(() {
+      _mutuelleName = null;
+      _planName = null;
+    });
+  }
+
+  void _setEtudiantStatus(String status) {
+    setState(() {
+      _estEtudiant = status;
+    });
+  }
+
+  void _clearEtudiantStatus() {
+    setState(() {
+      _estEtudiant = null;
+    });
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -64,10 +88,24 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
+    final List<Widget> pages = [
+      const HomeScreen(),
+      const HistoriquePage(),
+      ProfileScreen(
+        mutuelleName: _mutuelleName,
+        planName: _planName,
+        onPlanSelectionComplete: _onPlanSelectionComplete,
+        onClearPlanSelection: _clearPlanSelection,
+        estEtudiant: _estEtudiant,
+        onSetEtudiantStatus: _setEtudiantStatus,
+        onClearEtudiantStatus: _clearEtudiantStatus,
+      ),
+    ];
+
     return Scaffold(
       body: IndexedStack(
         index: _selectedIndex,
-        children: _pages,
+        children: pages,
       ),
       bottomNavigationBar: BottomNavBar(
         selectedIndex: _selectedIndex,

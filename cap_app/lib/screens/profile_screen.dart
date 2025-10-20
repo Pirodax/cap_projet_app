@@ -12,32 +12,24 @@ class ProfileScreen extends StatefulWidget {
 
   const ProfileScreen(
       {super.key,
-      this.mutuelleName,
-      this.planName,
-      this.onPlanSelectionComplete,
-      this.onClearPlanSelection,
-      this.estEtudiant,
-      this.onSetEtudiantStatus,
-      this.onClearEtudiantStatus});
+        this.mutuelleName,
+        this.planName,
+        this.onPlanSelectionComplete,
+        this.onClearPlanSelection,
+        this.estEtudiant,
+        this.onSetEtudiantStatus,
+        this.onClearEtudiantStatus});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  String? _mutuelle;
-
-  @override
-  void initState() {
-    super.initState();
-    _mutuelle = widget.mutuelleName;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Page Profil'),
+        title: const Text('Profil'),
         elevation: 0,
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.black,
@@ -70,9 +62,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 20),
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: 'Email',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10.0),
+                ),
+              ),
+              keyboardType: TextInputType.emailAddress,
+            ),
             const SizedBox(height: 30),
             const Text(
-              'Votre couverture santé:',
+              'Votre Couverture santé:',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
@@ -96,16 +98,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
               )
             else
               DropdownButtonFormField<String>(
-                value: _mutuelle,
+                value: widget.mutuelleName,
                 hint: const Text('Mutuelle'),
                 onChanged: (String? newValue) {
-                  if (newValue != null) {
+                  final callback = widget.onPlanSelectionComplete;
+                  if (newValue != null && callback != null) {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => PlansScreen(
                           mutuelleName: newValue,
-                          onPlanSelectionComplete: widget.onPlanSelectionComplete!,
+                          onPlanSelectionComplete: callback,
                         ),
                       ),
                     );
@@ -162,8 +165,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               DropdownButtonFormField<String>(
                 hint: const Text('Étudiant ?'),
                 onChanged: (String? newValue) {
-                  if (newValue != null) {
-                    widget.onSetEtudiantStatus!(newValue);
+                  final callback = widget.onSetEtudiantStatus;
+                  if (newValue != null && callback != null) {
+                    callback(newValue);
                   }
                 },
                 items: <String>['Oui', 'Non']
