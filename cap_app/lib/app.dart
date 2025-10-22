@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'features/auth/screens/sign_in_screen.dart';
-// J'ajoute un préfixe 'auth' pour résoudre l'ambiguïté
 import 'features/auth/screens/sign_up_screen.dart' as auth;
 import 'screens/home_screen.dart';
 import 'screens/profile_screen.dart';
 import 'widgets/bottom_navbar.dart';
-// NOUVEAU : Import de la page historique avec toutes les fonctionnalités
 import 'features/History/historique_page.dart';
 
 class MyApp extends StatelessWidget {
@@ -15,10 +13,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Cap projet App',
+      title: 'Cap Projet App',
       theme: ThemeData(
         primarySwatch: Colors.indigo,
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
         useMaterial3: true,
         inputDecorationTheme: InputDecorationTheme(
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -49,41 +47,9 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
   int _selectedIndex = 0;
-  String? _mutuelleName;
-  String? _planName;
-  String? _estEtudiant;
-
-  void _onPlanSelectionComplete(String mutuelle, String plan) {
-    setState(() {
-      _mutuelleName = mutuelle;
-      _planName = plan;
-      _selectedIndex = 2; // Assurez-vous que l'onglet de profil est actif
-    });
-  }
-
-  void _clearPlanSelection() {
-    setState(() {
-      _mutuelleName = null;
-      _planName = null;
-    });
-  }
-
-  void _setEtudiantStatus(String status) {
-    setState(() {
-      _estEtudiant = status;
-    });
-  }
-
-  void _clearEtudiantStatus() {
-    setState(() {
-      _estEtudiant = null;
-    });
-  }
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    setState(() => _selectedIndex = index);
   }
 
   @override
@@ -91,15 +57,7 @@ class _MainPageState extends State<MainPage> {
     final List<Widget> pages = [
       const HomeScreen(),
       const HistoriquePage(),
-      ProfileScreen(
-        mutuelleName: _mutuelleName,
-        planName: _planName,
-        onPlanSelectionComplete: _onPlanSelectionComplete,
-        onClearPlanSelection: _clearPlanSelection,
-        estEtudiant: _estEtudiant,
-        onSetEtudiantStatus: _setEtudiantStatus,
-        onClearEtudiantStatus: _clearEtudiantStatus,
-      ),
+      const ProfileScreen(), // ✅ on ne passe plus de paramètres ici
     ];
 
     return Scaffold(
