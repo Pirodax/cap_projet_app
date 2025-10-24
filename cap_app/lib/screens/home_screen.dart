@@ -25,7 +25,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Map<String, dynamic>> _articles = [
     {'title': 'Nouvelles mesures de remboursement', 'subtitle': 'Découvrez les changements pour 2024...', 'icon': Icons.article},
     {'title': 'Campagne de prévention grippe', 'subtitle': 'Pensez à vous faire vacciner...', 'icon': Icons.campaign},
-    // ... reste des articles
+
   ];
 
   @override
@@ -53,7 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ? []
           : _allCategories
           .where((category) {
-        // ✅ CORRIGÉ: Utiliser 'name' au lieu de 'nom'
+        // ✅ CORRIGÉ:
         final categoryName = (category['name'] as String? ?? '').toLowerCase();
         return categoryName.contains(query);
       })
