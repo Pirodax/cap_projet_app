@@ -1,0 +1,26 @@
+
+import '../core/supabase/supabase_init.dart';
+
+class CategoryService {
+  Future<List<Map<String, dynamic>>> getCategories() async {
+    try {
+      final user = supabase.auth.currentUser;
+      if (user == null) {
+        print('Cannot fetch categories: no user is signed in.');
+        return [];
+      }
+
+      final response = await supabase
+        .from('categories_soins')
+        .select('id, nom, icon, created_at')
+        .eq('user_id', user.id);
+        
+      return List<Map<String, dynamic>>.from(response);
+
+    } catch (e) {
+      // Gérer l'erreur, par exemple, en la journalisant ou en la lançant à nouveau
+      print('Error fetching categories: $e');
+      return [];
+    }
+  }
+}
