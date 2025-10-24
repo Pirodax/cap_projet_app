@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'features/auth/screens/sign_in_screen.dart';
-// J'ajoute un préfixe 'auth' pour résoudre l'ambiguïté
 import 'features/auth/screens/sign_up_screen.dart' as auth;
 import 'screens/home_screen.dart';
 import 'screens/profile_screen.dart';
 import 'widgets/bottom_navbar.dart';
-import 'screens/historique_screen.dart';
+import 'features/History/historique_page.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -14,10 +13,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Cap projet App',
+      title: 'Cap Projet App',
       theme: ThemeData(
         primarySwatch: Colors.indigo,
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
         useMaterial3: true,
         inputDecorationTheme: InputDecorationTheme(
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -49,24 +48,22 @@ class MainPage extends StatefulWidget {
 class _MainPageState extends State<MainPage> {
   int _selectedIndex = 0;
 
-  final List<Widget> _pages = const [
-    HomeScreen(),
-    HistoriqueScreen(),
-    ProfileScreen(),
-  ];
-
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    setState(() => _selectedIndex = index);
   }
 
   @override
   Widget build(BuildContext context) {
+    final List<Widget> pages = [
+      const HomeScreen(),
+      const HistoriquePage(),
+      const ProfileScreen(), // ✅ on ne passe plus de paramètres ici
+    ];
+
     return Scaffold(
       body: IndexedStack(
         index: _selectedIndex,
-        children: _pages,
+        children: pages,
       ),
       bottomNavigationBar: BottomNavBar(
         selectedIndex: _selectedIndex,
