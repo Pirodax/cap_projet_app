@@ -1,6 +1,6 @@
+import 'dart:ui';import 'dart:math'; // Importer pour générer des couleurs aléatoires
 
-import 'dart:ui';
-
+import '../services/category_service.dart';
 import 'package:flutter/material.dart';
 import '../widgets/Search_Bar.dart';
 
@@ -16,37 +16,27 @@ class _HomeScreenState extends State<HomeScreen> {
   final _focusNode = FocusNode();
   bool _isSearching = false;
 
-  final List<String> _allSearchTerms = [
-    'Hospitalisation', 'Dentaire', 'Optique', 'Ostéo', 'Kiné', 'ORL', 'Cardio', 'Psychologie', 'Soins courants'
-  ];
-  List<String> _filteredSearchTerms = [];
+  final CategoryService _categoryService = CategoryService();
+  late Future<List<Map<String, dynamic>>> _categoriesFuture;
+  List<Map<String, dynamic>> _allCategories = [];
+  List<Map<String, dynamic>> _filteredCategories = [];
 
-  final List<Map<String, dynamic>> _modules = [
-    {'title': 'Hospitalisation', 'icon': Icons.local_hospital, 'color': Colors.deepPurple},
-    {'title': 'Dentaire', 'icon': Icons.sentiment_satisfied, 'color': Colors.deepPurple},
-    {'title': 'Optique', 'icon': Icons.visibility, 'color': Colors.deepPurple},
-    {'title': 'Ostéo', 'icon': Icons.accessibility, 'color': Colors.deepPurple},
-    {'title': 'Kiné', 'icon': Icons.directions_run, 'color': Colors.deepPurple},
-    {'title': 'ORL', 'icon': Icons.hearing, 'color': Colors.deepPurple},
-    {'title': 'Cardio', 'icon': Icons.favorite, 'color': Colors.deepPurple},
-    {'title': 'Psychologie', 'icon': Icons.psychology, 'color': Colors.deepPurple},
-    {'title': 'Soins courants', 'icon': Icons.healing, 'color': Colors.deepPurple},
-  ];
-
+  // Données locales pour les articles, conservées telles quelles.
   final List<Map<String, dynamic>> _articles = [
     {'title': 'Nouvelles mesures de remboursement', 'subtitle': 'Découvrez les changements pour 2024...', 'icon': Icons.article},
     {'title': 'Campagne de prévention grippe', 'subtitle': 'Pensez à vous faire vacciner...', 'icon': Icons.campaign},
-    {'title': 'Téléconsultation disponible', 'subtitle': 'Consultez un médecin en ligne...', 'icon': Icons.video_call},
-    {'title': 'Nouveau centre médical', 'subtitle': 'Ouverture à proximité de vous...', 'icon': Icons.location_on},
-    {'title': 'Nouvelles mesures de remboursement', 'subtitle': 'Découvrez les changements pour 2024...', 'icon': Icons.article},
+    // ... reste des articles
   ];
 
   @override
   void initState() {
     super.initState();
+    _categoriesFuture = _categoryService.getCategories();
     _focusNode.addListener(_handleFocusChange);
     _searchController.addListener(_handleSearchChange);
   }
+
+  // Le reste des méthodes initState, dispose, etc. reste inchangé...
 
   void _handleFocusChange() {
     if (_focusNode.hasFocus != _isSearching) {
@@ -57,12 +47,17 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _handleSearchChange() {
+    final query = _searchController.text.toLowerCase();
     setState(() {
-      _filteredSearchTerms = _searchController.text.isEmpty
+      _filteredCategories = query.isEmpty
           ? []
-          : _allSearchTerms
-              .where((term) => term.toLowerCase().contains(_searchController.text.toLowerCase()))
-              .toList();
+          : _allCategories
+          .where((category) {
+        // ✅ CORRIGÉ: Utiliser 'name' au lieu de 'nom'
+        final categoryName = (category['name'] as String? ?? '').toLowerCase();
+        return categoryName.contains(query);
+      })
+          .toList();
     });
   }
 
@@ -80,6 +75,15 @@ class _HomeScreenState extends State<HomeScreen> {
   void _selectSearchTerm(String term) {
     _searchController.text = term;
     _focusNode.unfocus();
+  }
+
+  // Fonction pour générer une couleur aléatoire pour les catégories
+  Color _getRandomColor() {
+    final List<Color> presetColors = [
+      Colors.blue.shade300, Colors.green.shade300, Colors.orange.shade300,
+      Colors.purple.shade300, Colors.red.shade300, Colors.teal.shade300,
+    ];
+    return presetColors[Random().nextInt(presetColors.length)];
   }
 
   @override
@@ -108,6 +112,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildMainContent(double topPadding) {
+    // ... Le contenu principal (Titre, etc.) reste identique
     return ListView(
       padding: EdgeInsets.zero,
       children: [
@@ -134,62 +139,87 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         const SizedBox(height: 20),
-        _buildHorizontalSection('Catégories', _modules),
-        _buildHorizontalSection('Récemment consulté', _modules.reversed.toList()),
+        _buildCategoriesSection(),
         _buildNewsSection(),
       ],
     );
   }
 
-  Widget _buildHorizontalSection(String title, List<Map<String, dynamic>> items) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-          child: Text(
-            title,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-          ),
-        ),
-        SizedBox(
-          height: 140,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            itemCount: items.length,
-            itemBuilder: (context, index) {
-              final item = items[index];
-              return GestureDetector(
-                onTap: () => _selectSearchTerm(item['title']),
-                child: Container(
-                  width: 120,
-                  margin: const EdgeInsets.only(right: 15),
-                  decoration: BoxDecoration(
-                    color: item['color'],
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(item['icon'], size: 40, color: Colors.white),
-                      const SizedBox(height: 10),
-                      Text(
-                        item['title'],
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+  Widget _buildCategoriesSection() {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _categoriesFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('Erreur: ${snapshot.error}'));
+        }
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const Center(child: Text('Aucune catégorie trouvée.'));
+        }
+        _allCategories = snapshot.data!;
+
+        // La section horizontale est maintenant construite avec les données de la DB
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              child: Text(
+                'Catégories',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+              ),
+            ),
+            SizedBox(
+              height: 140,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: _allCategories.length,
+                itemBuilder: (context, index) {
+                  final item = _allCategories[index];
+                  // ✅ CORRIGÉ: Utiliser 'name' pour le titre et 'icon' pour l'emoji
+                  final title = item['name'] as String? ?? 'Sans nom';
+                  final iconString = item['icon'] as String? ?? '❓';
+
+                  return GestureDetector(
+                    onTap: () => _selectSearchTerm(title),
+                    child: Container(
+                      width: 120,
+                      margin: const EdgeInsets.only(right: 15),
+                      decoration: BoxDecoration(
+                        color: _getRandomColor(), // Utilise une couleur aléatoire prédéfinie
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // ✅ CORRIGÉ: Utiliser un Widget Text pour afficher l'emoji
+                          Text(
+                            iconString,
+                            style: const TextStyle(fontSize: 40),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            title,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
+  // La méthode _buildNewsSection() reste inchangée
   Widget _buildNewsSection() {
     return Padding(
       padding: const EdgeInsets.all(20.0),
@@ -213,9 +243,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   elevation: 2,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                   child: ListTile(
-                    leading: Icon(article['icon']),
-                    title: Text(article['title']),
-                    subtitle: Text(article['subtitle']),
+                    leading: Icon(article['icon'] as IconData),
+                    title: Text(article['title'] as String),
+                    subtitle: Text(article['subtitle'] as String),
                   ),
                 ),
               );
@@ -233,7 +263,7 @@ class _HomeScreenState extends State<HomeScreen> {
         filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
         child: Container(
           color: Colors.black.withOpacity(0.8),
-          child: _filteredSearchTerms.isEmpty
+          child: _filteredCategories.isEmpty
               ? Center(
             child: Text(
               _searchController.text.isEmpty ? 'Que recherchez-vous ?' : 'Aucun résultat',
@@ -242,15 +272,21 @@ class _HomeScreenState extends State<HomeScreen> {
           )
               : ListView.builder(
             padding: EdgeInsets.only(top: topPadding),
-            itemCount: _filteredSearchTerms.length,
+            itemCount: _filteredCategories.length,
             itemBuilder: (context, index) {
+              final category = _filteredCategories[index];
+              // ✅ CORRIGÉ: Utiliser 'name' et 'icon'
+              final categoryName = category['name'] as String? ?? 'Sans nom';
+              final categoryIcon = category['icon'] as String? ?? '❓';
+
               return ListTile(
-                leading: const Icon(Icons.arrow_forward_ios, color: Colors.white),
+                // ✅ CORRIGÉ: Afficher l'emoji dans un Text
+                leading: Text(categoryIcon, style: const TextStyle(fontSize: 24)),
                 title: Text(
-                  _filteredSearchTerms[index],
+                  categoryName,
                   style: const TextStyle(color: Colors.white),
                 ),
-                onTap: () => _selectSearchTerm(_filteredSearchTerms[index]),
+                onTap: () => _selectSearchTerm(categoryName),
               );
             },
           ),

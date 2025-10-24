@@ -17,7 +17,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   String? _error;
 
   // Deep-link de retour OAuth / email confirmation
-  static const _redirect = 'com.monapp://login-callback/'; // ← Assure-toi que c'est le bon
+  //static const _redirect = 'com.monapp://login-callback/'; // ← Assure-toi que c'est le bon
 
   @override
   void dispose() {
@@ -36,7 +36,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       await supabase.auth.signUp(
         email: _emailCtrl.text.trim(),
         password: _pwdCtrl.text,
-        emailRedirectTo: _redirect,
+        //emailRedirectTo: _redirect,
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
