@@ -1,7 +1,4 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
 
 class SuggestionScreen extends StatefulWidget {
   const SuggestionScreen({super.key});
@@ -18,7 +15,7 @@ class _SuggestionScreenState extends State<SuggestionScreen>
   bool isEtudiant = false;
   double age = 30;
   String departement = '';
-  bool sortByBrss = false; // "Comparer" : tri BRSS décroissant
+  bool sortByBrss = false; // bouton "Comparer" : tri BRSS décroissant
 
   late final AnimationController _controller;
 
@@ -43,7 +40,7 @@ class _SuggestionScreenState extends State<SuggestionScreen>
     'Mutualia': 120,
   };
 
-  // Offres d’exemple (maquette)
+  // Offres d’exemple
   final Map<String, Map<String, List<Map<String, dynamic>>>> offres = {
     'MGEN': {
       'Optique (lunettes, lentilles)': [
@@ -131,7 +128,7 @@ class _SuggestionScreenState extends State<SuggestionScreen>
     super.dispose();
   }
 
-  // Helpers sûrs
+  // ---------- Helpers sûrs ----------
   Map<String, dynamic> _toStringKeyMap(dynamic raw) {
     if (raw == null) return <String, dynamic>{};
     if (raw is Map) return Map<String, dynamic>.from(raw as Map);
@@ -180,7 +177,7 @@ class _SuggestionScreenState extends State<SuggestionScreen>
     return total;
   }
 
-  // Regroupe les résultats selon filtres + scoring (eligibilité + BRSS)
+  // Regroupe toutes les suggestions selon filtres, avec score
   List<_SuggestionEntry> _gatherEntries() {
     final List<_SuggestionEntry> entries = [];
     if (selectedSoin == null) return entries;
@@ -191,7 +188,7 @@ class _SuggestionScreenState extends State<SuggestionScreen>
         final elig = _isEligible(_toStringKeyMap(offer['eligibility']));
         final brss = tauxBRSS[m] ?? 100;
         final estimate = _calculateEstimate(m, selectedSoin!);
-        final score = (elig ? 50 : 0) + brss;
+        final score = (elig ? 50 : 0) + brss; // simple scoring : éligibilité prime + BRSS
         entries.add(_SuggestionEntry(
           mutuelle: m,
           soin: selectedSoin!,
@@ -207,6 +204,7 @@ class _SuggestionScreenState extends State<SuggestionScreen>
     if (sortByBrss) {
       entries.sort((a, b) => b.brss.compareTo(a.brss));
     } else {
+      // tri par score (relevance) puis BRSS
       entries.sort((a, b) {
         final c = b.score.compareTo(a.score);
         if (c != 0) return c;
@@ -216,6 +214,7 @@ class _SuggestionScreenState extends State<SuggestionScreen>
     return entries;
   }
 
+  // Trouve la meilleure recommandation
   _SuggestionEntry? _bestEntry() {
     final all = _gatherEntries();
     if (all.isEmpty) return null;
@@ -244,256 +243,6 @@ class _SuggestionScreenState extends State<SuggestionScreen>
     }
   }
 
-  // ---------- Détails (modal) ----------
-  void _showOfferDetails(_SuggestionEntry e) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) {
-        final eligibility = _toStringKeyMap(e.offer['eligibility']);
-        return DraggableScrollableSheet(
-          expand: false,
-          initialChildSize: 0.6,
-          minChildSize: 0.4,
-          maxChildSize: 0.92,
-          builder: (_, controller) {
-            final normalized = (e.brss / 300).clamp(0.0, 1.0);
-            return SingleChildScrollView(
-              controller: controller,
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Barre de drag
-                  Center(
-                    child: Container(
-                      width: 42,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        color: Colors.black12,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 24,
-                        backgroundColor: _accent.withOpacity(0.12),
-                        child: Icon(_iconForSoin(e.soin), color: _accent),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          (e.offer['title'] ?? '') as String,
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: _ink,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      _Pill(text: e.mutuelle, bg: _primary.withOpacity(0.08), fg: _primary),
-                      const SizedBox(width: 8),
-                      _Pill(text: selectedPlan ?? 'Plan : —', bg: Colors.black12.withOpacity(0.08), fg: _ink),
-                      const Spacer(),
-                      _Pill(
-                        text: e.eligible ? "Éligible" : "Non éligible",
-                        bg: e.eligible ? const Color(0xFFE9F8EF) : const Color(0xFFFFF3E6),
-                        fg: e.eligible ? const Color(0xFF1E8449) : const Color(0xFFAF601A),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  Text(
-                    (e.offer['description'] ?? '') as String,
-                    style: TextStyle(color: _ink.withOpacity(0.8), height: 1.35),
-                  ),
-                  const SizedBox(height: 14),
-                  Text("Conditions d’éligibilité", style: TextStyle(fontWeight: FontWeight.w800, color: _ink)),
-                  const SizedBox(height: 8),
-                  _EligibilityList(
-                    data: eligibility,
-                    textColor: _ink.withOpacity(0.85),
-                  ),
-                  const SizedBox(height: 14),
-                  Row(
-                    children: [
-                      Icon(Icons.shield_rounded, size: 18, color: _primary),
-                      const SizedBox(width: 6),
-                      Text("BRSS : ${e.brss}%", style: TextStyle(fontWeight: FontWeight.w700, color: _ink)),
-                      const Spacer(),
-                      Row(
-                        children: [
-                          const Icon(Icons.euro, size: 18, color: Colors.black54),
-                          const SizedBox(width: 6),
-                          Text("Estimation : ${e.estimate.toStringAsFixed(0)} €",
-                              style: TextStyle(fontWeight: FontWeight.w800, color: _ink)),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: LinearProgressIndicator(
-                      value: normalized,
-                      minHeight: 12,
-                      backgroundColor: const Color(0xFFE8F0FA),
-                      color: e.brss >= 250
-                          ? const Color(0xFF2ECC71)
-                          : (e.brss >= 150
-                          ? const Color(0xFF5DADE2)
-                          : const Color(0xFFF39C12)),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text("Contact mutuelle : fonctionnalité à intégrer (email/téléphone/site)."),
-                                behavior: SnackBarBehavior.floating,
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.phone_in_talk_rounded),
-                          label: const Text("Contacter la mutuelle"),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: _primary,
-                            side: BorderSide(color: _primary.withOpacity(0.4)),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.check_circle_outline_rounded),
-                          label: const Text("OK"),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _primary,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  // ---------- Export / Partage PDF ----------
-  Future<void> _exportPdf() async {
-    final entries = _gatherEntries();
-    final now = DateTime.now();
-    final doc = pw.Document();
-
-    doc.addPage(
-      pw.MultiPage(
-        pageTheme: pw.PageTheme(
-          margin: const pw.EdgeInsets.symmetric(horizontal: 28, vertical: 28),
-        ),
-        build: (context) => [
-          pw.Header(
-            level: 0,
-            child: pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-              children: [
-                pw.Text('Suggestions de remboursements',
-                    style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
-                pw.Text('${now.day}/${now.month}/${now.year}',
-                    style: const pw.TextStyle(fontSize: 12)),
-              ],
-            ),
-          ),
-          pw.SizedBox(height: 6),
-          pw.Text(
-            'Filtres : Soin = ${selectedSoin ?? '—'}, Mutuelle = ${selectedMutuelle ?? 'Toutes'}, '
-                'Plan = ${selectedPlan ?? 'Tous'}, Âge = ${age.round()}, Étudiant = ${isEtudiant ? 'Oui' : 'Non'}, '
-                'Département = ${departement.isEmpty ? '—' : departement}',
-            style: const pw.TextStyle(fontSize: 11),
-          ),
-          pw.SizedBox(height: 12),
-          if (entries.isEmpty)
-            pw.Paragraph(text: 'Aucune suggestion pour ces filtres.')
-          else
-            ...entries.map((e) {
-              final title = (e.offer['title'] ?? '') as String;
-              final desc = (e.offer['description'] ?? '') as String;
-              final elig = _toStringKeyMap(e.offer['eligibility']);
-              return pw.Container(
-                margin: const pw.EdgeInsets.only(bottom: 12),
-                padding: const pw.EdgeInsets.all(12),
-                decoration: pw.BoxDecoration(
-                  border: pw.Border.all(color: const pw.PdfColor(0.85, 0.88, 0.95)),
-                  borderRadius: pw.BorderRadius.circular(8),
-                ),
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Row(
-                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                      children: [
-                        pw.Text(title,
-                            style: pw.TextStyle(
-                              fontSize: 14,
-                              fontWeight: pw.FontWeight.bold,
-                            )),
-                        pw.Text(e.mutuelle,
-                            style: const pw.TextStyle(fontSize: 12)),
-                      ],
-                    ),
-                    pw.SizedBox(height: 4),
-                    pw.Text(desc, style: const pw.TextStyle(fontSize: 11)),
-                    pw.SizedBox(height: 6),
-                    pw.Text('BRSS : ${e.brss}%', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                    pw.Text('Estimation : ${e.estimate.toStringAsFixed(0)} €'),
-                    if (elig.isNotEmpty) ...[
-                      pw.SizedBox(height: 6),
-                      pw.Text('Conditions :', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                      ...elig.entries.map((kv) => pw.Bullet(
-                        text: '${kv.key} = ${kv.value}',
-                        style: const pw.TextStyle(fontSize: 11),
-                      )),
-                    ],
-                  ],
-                ),
-              );
-            }),
-        ],
-      ),
-    );
-
-    await Printing.layoutPdf(
-      onLayout: (format) async => Uint8List.fromList(await doc.save()),
-      name: 'suggestions_${now.year}-${now.month}-${now.day}.pdf',
-    );
-  }
-
   // ---------- UI ----------
   @override
   Widget build(BuildContext context) {
@@ -519,20 +268,13 @@ class _SuggestionScreenState extends State<SuggestionScreen>
               style: TextStyle(color: _primary, fontWeight: FontWeight.w700),
             ),
           ),
-          const SizedBox(width: 6),
-          IconButton(
-            tooltip: 'Exporter / Partager en PDF',
-            onPressed: _exportPdf,
-            icon: Icon(Icons.picture_as_pdf_rounded, color: _primary),
-          ),
-          const SizedBox(width: 6),
         ],
       ),
       body: Column(
         children: [
           _HeaderPremium(
             title: "Découvrez vos avantages",
-            subtitle: "Filtrez, comparez et enregistrez vos meilleures options.",
+            subtitle: "Filtrez, comparez et trouvez le meilleur niveau de prise en charge.",
             primary: _primary,
             accent: _accent,
           ),
@@ -648,7 +390,7 @@ class _SuggestionScreenState extends State<SuggestionScreen>
 
                   const SizedBox(height: 14),
 
-                  // Résumé intelligent (si dispo)
+                  // Résumé intelligent (reco)
                   if (best != null)
                     _BestCard(
                       entry: best,
@@ -658,8 +400,8 @@ class _SuggestionScreenState extends State<SuggestionScreen>
                       icon: _iconForSoin(best.soin),
                     )
                   else
-                    const _EmptyState(
-                      title: "Aucune suggestion pour l’instant.",
+                    _EmptyState(
+                      title: "Aucune suggestion pour l’instant",
                       subtitle: "Sélectionnez un type de soin et ajustez vos filtres.",
                     ),
 
@@ -699,7 +441,15 @@ class _SuggestionScreenState extends State<SuggestionScreen>
                       accent: _accent,
                       ink: _ink,
                       icon: _iconForSoin(e.soin),
-                      onTap: () => _showOfferDetails(e),
+                      onTap: () {
+                        // Placeholder action (ouvrir détail, etc.)
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text("« ${e.offer['title']} » — ${e.mutuelle}"),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -799,12 +549,12 @@ class _HeaderPremium extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(children: const [
-              Icon(Icons.verified_user_rounded, color: Colors.white),
-              SizedBox(width: 10),
+            Row(children: [
+              const Icon(Icons.verified_user_rounded, color: Colors.white),
+              const SizedBox(width: 10),
               Text(
-                "Découvrez vos avantages",
-                style: TextStyle(
+                title,
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
@@ -814,7 +564,7 @@ class _HeaderPremium extends StatelessWidget {
             ]),
             const SizedBox(height: 6),
             Text(
-              "Filtrez, comparez et enregistrez vos meilleures options.",
+              subtitle,
               style: TextStyle(color: Colors.white.withOpacity(0.92), fontSize: 13.5),
             ),
           ],
@@ -845,7 +595,9 @@ class _FiltersCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0xFFE6ECF5)),
-        boxShadow: const [BoxShadow(color: Color(0x12000000), blurRadius: 14, offset: Offset(0, 8))],
+        boxShadow: const [
+          BoxShadow(color: Color(0x12000000), blurRadius: 14, offset: Offset(0, 8)),
+        ],
       ),
       child: Column(
         children: [
@@ -853,7 +605,10 @@ class _FiltersCard extends StatelessWidget {
             children: [
               Icon(Icons.tune_rounded, color: ink.withOpacity(0.8)),
               const SizedBox(width: 8),
-              Text("Filtres", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: ink)),
+              Text(
+                "Filtres",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: ink),
+              ),
               const Spacer(),
               TextButton.icon(
                 onPressed: onReset,
@@ -889,7 +644,10 @@ class _LabeledField extends StatelessWidget {
           padding: const EdgeInsets.only(left: 4, bottom: 6, top: 2),
           child: Text(
             label,
-            style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF0E1A2B)),
+            style: const TextStyle(
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF0E1A2B),
+            ),
           ),
         ),
         child,
@@ -986,12 +744,14 @@ class _BestCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        gradient: const LinearGradient(
-          colors: [Colors.white, Color(0xFFF9FBFF)],
+        gradient: LinearGradient(
+          colors: [Colors.white, const Color(0xFFF9FBFF)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        boxShadow: const [BoxShadow(color: Color(0x14000000), blurRadius: 16, offset: Offset(0, 8))],
+        boxShadow: const [
+          BoxShadow(color: Color(0x14000000), blurRadius: 16, offset: Offset(0, 8)),
+        ],
         border: Border.all(color: const Color(0xFFE6ECF5)),
       ),
       child: Padding(
@@ -1001,7 +761,8 @@ class _BestCard extends StatelessWidget {
             children: [
               const Icon(Icons.emoji_events_rounded, color: Color(0xFFFFB300)),
               const SizedBox(width: 8),
-              Text("Notre recommandation", style: TextStyle(fontWeight: FontWeight.w800, color: ink)),
+              Text("Notre recommandation",
+                  style: TextStyle(fontWeight: FontWeight.w800, color: ink)),
               const Spacer(),
               _Pill(text: entry.mutuelle, bg: primary.withOpacity(0.08), fg: primary),
             ],
@@ -1036,7 +797,8 @@ class _BestCard extends StatelessWidget {
             children: [
               Icon(Icons.shield_rounded, size: 18, color: primary),
               const SizedBox(width: 6),
-              Text("BRSS : ${entry.brss}%", style: TextStyle(fontWeight: FontWeight.w700, color: ink)),
+              Text("BRSS : ${entry.brss}%",
+                  style: TextStyle(fontWeight: FontWeight.w700, color: ink)),
               const Spacer(),
               _Pill(
                 text: entry.eligible ? "Éligible" : "Non éligible",
@@ -1061,10 +823,13 @@ class _BestCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Row(
-            children: const [
-              Icon(Icons.euro, size: 18, color: Colors.black54),
-              SizedBox(width: 6),
-              // Valeur déjà dans l'en-tête de la page, ici on reste concis
+            children: [
+              const Icon(Icons.euro, size: 18, color: Colors.black54),
+              const SizedBox(width: 6),
+              Text(
+                "Estimation : ${entry.estimate.toStringAsFixed(0)} €",
+                style: TextStyle(fontWeight: FontWeight.w800, color: ink),
+              ),
             ],
           ),
         ]),
@@ -1167,7 +932,11 @@ class _OfferCardState extends State<_OfferCard> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      _Pill(text: e.mutuelle, bg: widget.primary.withOpacity(0.08), fg: widget.primary),
+                      _Pill(
+                        text: e.mutuelle,
+                        bg: widget.primary.withOpacity(0.08),
+                        fg: widget.primary,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 10),
@@ -1181,8 +950,10 @@ class _OfferCardState extends State<_OfferCard> {
                     children: [
                       Icon(Icons.shield_rounded, size: 18, color: widget.primary),
                       const SizedBox(width: 6),
-                      Text("BRSS : ${e.brss}%",
-                          style: TextStyle(color: widget.ink, fontWeight: FontWeight.w700)),
+                      Text(
+                        "BRSS : ${e.brss}%",
+                        style: TextStyle(color: widget.ink, fontWeight: FontWeight.w700),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -1222,34 +993,5 @@ class _OfferCardState extends State<_OfferCard> {
         ),
       ),
     );
-  }
-}
-
-// ---------- Listes / widgets utilitaires ----------
-class _EligibilityList extends StatelessWidget {
-  final Map<String, dynamic> data;
-  final Color textColor;
-
-  const _EligibilityList({required this.data, required this.textColor});
-
-  @override
-  Widget build(BuildContext context) {
-    if (data.isEmpty) {
-      return Text("Aucune condition particulière.", style: TextStyle(color: textColor));
-    }
-    final items = <Widget>[];
-    data.forEach((k, v) {
-      items.add(Row(
-        children: [
-          const Icon(Icons.check_circle_outline_rounded, size: 18, color: Colors.black38),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text("$k : $v", style: TextStyle(color: textColor)),
-          ),
-        ],
-      ));
-      items.add(const SizedBox(height: 6));
-    });
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: items);
   }
 }
