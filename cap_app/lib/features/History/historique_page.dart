@@ -1,7 +1,6 @@
 // lib/historique_page.dart
 
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
 
 // Modèle de données pour une simulation
 class Simulation {
@@ -26,14 +25,6 @@ class Simulation {
   });
 }
 
-// Données pour le graphique
-class MonthData {
-  final String month;
-  final double montant;
-
-  MonthData(this.month, this.montant);
-}
-
 class HistoriquePage extends StatefulWidget {
   const HistoriquePage({super.key});
 
@@ -43,13 +34,12 @@ class HistoriquePage extends StatefulWidget {
 
 class _HistoriquePageState extends State<HistoriquePage>
     with TickerProviderStateMixin {
-  int _currentIndex = 1;
   late AnimationController _animationController;
   late AnimationController _skeletonController;
   late Animation<double> _animation;
   String _searchQuery = '';
   String _selectedCategory = 'Tous';
-  String _selectedPeriod = 'Tout'; // Nouveau : période sélectionnée
+  String _selectedPeriod = 'Tout';
   String _sortBy = 'date_desc';
   bool _isLoading = true;
 
@@ -223,42 +213,6 @@ class _HistoriquePageState extends State<HistoriquePage>
     return totals;
   }
 
-  List<MonthData> get _chartData {
-    final Map<String, double> monthlyData = {};
-
-    for (var sim in _simulations) {
-      final monthKey = _getMonthName(sim.date.month).substring(0, 3);
-      monthlyData[monthKey] = (monthlyData[monthKey] ?? 0) + sim.economieEstimee;
-    }
-
-    return monthlyData.entries
-        .map((e) => MonthData(e.key, e.value))
-        .toList()
-        .reversed
-        .take(6)
-        .toList()
-        .reversed
-        .toList();
-  }
-
-  String _getMonthName(int month) {
-    const months = [
-      'Janvier',
-      'Février',
-      'Mars',
-      'Avril',
-      'Mai',
-      'Juin',
-      'Juillet',
-      'Août',
-      'Septembre',
-      'Octobre',
-      'Novembre',
-      'Décembre'
-    ];
-    return months[month - 1];
-  }
-
   List<Simulation> _getFilteredAndSortedSimulations() {
     var filtered = _simulations.where((simulation) {
       final matchesSearch = _searchQuery.isEmpty ||
@@ -281,7 +235,6 @@ class _HistoriquePageState extends State<HistoriquePage>
       } else if (_selectedPeriod == '3 mois') {
         matchesPeriod = now.difference(simulation.date).inDays <= 90;
       }
-      // Si 'Tout', matchesPeriod reste true
 
       return matchesSearch && matchesCategory && matchesPeriod;
     }).toList();
@@ -375,11 +328,11 @@ class _HistoriquePageState extends State<HistoriquePage>
             _buildQuickStats(),
             const SizedBox(height: 20),
 
-            // Barre de recherche (montée en priorité)
+            // Barre de recherche
             _buildSearchBar(),
             const SizedBox(height: 16),
 
-            // Section Filtres (Catégorie + Période)
+            // Section Filtres
             const Text(
               'Filtres',
               style: TextStyle(
@@ -398,14 +351,8 @@ class _HistoriquePageState extends State<HistoriquePage>
             _buildPeriodFilters(),
             const SizedBox(height: 20),
 
-            // Boutons compacts en 2 colonnes
-            Row(
-              children: [
-                Expanded(child: _buildCompactGraphButton()),
-                const SizedBox(width: 12),
-                Expanded(child: _buildCompactCategoryButton()),
-              ],
-            ),
+            // Bouton catégories (pleine largeur)
+            _buildCategoryButton(),
             const SizedBox(height: 24),
 
             // Header avec nombre de résultats
@@ -456,10 +403,6 @@ class _HistoriquePageState extends State<HistoriquePage>
                 ),
               ),
 
-            const SizedBox(height: 20),
-
-            // Bouton pour ajouter une simulation
-            _buildAddSimulationButton(),
             const SizedBox(height: 20),
           ],
         ),
@@ -566,80 +509,8 @@ class _HistoriquePageState extends State<HistoriquePage>
     );
   }
 
-  // Bouton pour afficher le graphique
-  Widget _buildGraphButton() {
-    return InkWell(
-      onTap: _showGraphModal,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.blue[400]!, Colors.blue[600]!],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.blue.withOpacity(0.3),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(
-                Icons.bar_chart_rounded,
-                color: Colors.white,
-                size: 28,
-              ),
-            ),
-            const SizedBox(width: 16),
-            const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Voir le graphique',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Économies sur 6 mois',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.white70,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(
-              Icons.chevron_right,
-              color: Colors.white,
-              size: 28,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Bouton pour afficher les totaux par catégorie
-  Widget _buildCategoryTotalsButton() {
+  // Bouton pour afficher les totaux par catégorie (pleine largeur)
+  Widget _buildCategoryButton() {
     final totals = _categoryTotals;
     final categoriesCount = totals.length;
 
@@ -1019,165 +890,6 @@ class _HistoriquePageState extends State<HistoriquePage>
     );
   }
 
-  // Modal du graphique
-  void _showGraphModal() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.6,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(25),
-            topRight: Radius.circular(25),
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'Graphique des économies',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Économies estimées sur les 6 derniers mois',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                ),
-              ),
-              const SizedBox(height: 24),
-              Expanded(child: _buildChart()),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue[600],
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    'Fermer',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildChart() {
-    final data = _chartData;
-    if (data.isEmpty) {
-      return Center(
-        child: Text(
-          'Pas encore de données',
-          style: TextStyle(color: Colors.grey[400]),
-        ),
-      );
-    }
-
-    final maxValue = data.map((e) => e.montant).reduce(math.max);
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.blue[400]!, Colors.blue[600]!],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: data.map((monthData) {
-                final heightPercent = monthData.montant / maxValue;
-                return Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Text(
-                          '${monthData.montant.toStringAsFixed(0)}€',
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: Colors.white70,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        TweenAnimationBuilder<double>(
-                          duration: const Duration(milliseconds: 1000),
-                          tween: Tween<double>(begin: 0, end: heightPercent),
-                          builder: (context, double value, child) {
-                            return Container(
-                              height: 150 * value,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          monthData.month,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildSearchBar() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -1254,87 +966,6 @@ class _HistoriquePageState extends State<HistoriquePage>
             ),
           );
         },
-      ),
-    );
-  }
-
-  // Bouton compact pour le graphique
-  Widget _buildCompactGraphButton() {
-    return InkWell(
-      onTap: _showGraphModal,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.blue[600],
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.blue.withOpacity(0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Icon(
-              Icons.bar_chart_rounded,
-              color: Colors.white,
-              size: 32,
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Graphique',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Bouton compact pour les catégories
-  Widget _buildCompactCategoryButton() {
-    final totals = _categoryTotals;
-    return InkWell(
-      onTap: _showCategoryTotalsModal,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.purple[600],
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.purple.withOpacity(0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Icon(
-              Icons.pie_chart_rounded,
-              color: Colors.white,
-              size: 32,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Catégories',
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -1501,82 +1132,6 @@ class _HistoriquePageState extends State<HistoriquePage>
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  // Bouton pour ajouter une simulation
-  Widget _buildAddSimulationButton() {
-    return InkWell(
-      onTap: _showAddSimulationDialog,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.blue[300]!, width: 2, style: BorderStyle.solid),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.blue.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.add_circle_outline,
-              color: Colors.blue[600],
-              size: 28,
-            ),
-            const SizedBox(width: 12),
-            Text(
-              'Ajouter une simulation',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.blue[600],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Dialog pour ajouter une simulation
-  void _showAddSimulationDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Ajouter une simulation'),
-        content: const Text(
-          'Cette fonctionnalité permettrait d\'ajouter manuellement une simulation.\n\nVous pouvez la connecter à un formulaire ou à votre API.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Fermer'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // Ajoutez ici la logique pour ouvrir un formulaire
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue[600],
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: const Text('OK'),
-          ),
-        ],
       ),
     );
   }

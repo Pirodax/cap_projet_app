@@ -3,6 +3,46 @@ import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+// =============================================
+// MODÈLES DE DONNÉES (inchangés)
+// =============================================
+class Mutuelle {
+  final int id;
+  final String name;
+  Mutuelle({required this.id, required this.name});
+}
+
+class Formule {
+  final int id;
+  final int mutuelleId;
+  final String name;
+  Formule({required this.id, required this.mutuelleId, required this.name});
+}
+
+// =============================================
+//  CLASSE DE SERVICE (inchangée)
+// =============================================
+class ProfileService {
+  final supabase = Supabase.instance.client;
+
+  Future<List<Mutuelle>> getMutuelles() async {
+    final response = await supabase.from('mutuelles').select('id, name');
+    return (response as List)
+        .map((item) => Mutuelle(id: item['id'], name: item['name']))
+        .toList();
+  }
+
+  Future<List<Formule>> getFormules() async {
+    final response = await supabase.from('mutuelle_formules').select('id, mutuelle_id, name');
+    return (response as List)
+        .map((item) => Formule(id: item['id'], mutuelleId: item['mutuelle_id'], name: item['name']))
+        .toList();
+  }
+}
+
+// =============================================
+//  ÉCRAN DU PROFIL
+// =============================================
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -12,16 +52,18 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final supabase = Supabase.instance.client;
+  final _profileService = ProfileService();
 
   late TextEditingController _usernameController;
   DateTime? _birthDate;
-  String? _selectedMutuelle;
-  String? _selectedFormule;
-  String? _selectedRegime;
 
-  final List<String> mutuelles = ['Alan', 'MGEN', 'Axa', 'Mutualia'];
-  final List<String> formules = ['Standard', 'Premium', 'Jeune'];
-  final List<String> regimes = ['Régime général', 'Étudiant', 'MSA', 'RSI'];
+  int? _selectedMutuelleId;
+  int? _selectedFormuleId;
+
+  // ↔️ CHANGÉ: Plus besoin de Future ici, on les utilise directement dans les FutureBuilders.
+  List<Mutuelle> _allMutuelles = [];
+  List<Formule> _allFormules = [];
+  List<Formule> _filteredFormules = [];
 
   bool _loading = true;
 
@@ -29,42 +71,59 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _usernameController = TextEditingController();
-    _loadProfile();
+    _loadInitialData();
   }
 
-  Future<void> _loadProfile() async {
-    final user = supabase.auth.currentUser;
-    if (user == null) return;
-
+  Future<void> _loadInitialData() async {
     try {
-      final data = await supabase
-          .from('user_infos')
-          .select()
-          .eq('user_id', user.id)
-          .maybeSingle();
+      // On charge tout en parallèle pour plus d'efficacité
+      final results = await Future.wait([
+        _profileService.getMutuelles(),
+        _profileService.getFormules(),
+        _loadUserProfileData(), // Charge les données spécifiques à l'utilisateur
+      ]);
 
-      if (data != null) {
-        setState(() {
-          _usernameController.text = data['username'] ?? '';
-          _selectedMutuelle = data['mituelle_id'];
-          _selectedFormule = data['mituelle_formule_id'];
-          _selectedRegime = data['regime_assurance_maladie_id'];
-          if (data['date_of_birth'] != null) {
-            _birthDate = DateTime.tryParse(data['date_of_birth']);
-          }
-        });
-      } else {
-        // si aucun profil n’existe encore → le créer automatiquement
-        await supabase.from('user_infos').insert({
-          'user_id': user.id,
-          'username': user.email ?? 'Utilisateur',
-        });
+      // On assigne les résultats aux variables d'état
+      _allMutuelles = results[0] as List<Mutuelle>;
+      _allFormules = results[1] as List<Formule>;
+      final userData = results[2] as Map<String, dynamic>?;
+
+      if (userData != null) {
+        _usernameController.text = userData['username'] ?? '';
+        _selectedMutuelleId = userData['mutuelle_id'];
+        _selectedFormuleId = userData['mutuelle_formule_id'];
+        if (userData['date_of_birth'] != null) {
+          _birthDate = DateTime.tryParse(userData['date_of_birth']);
+        }
+
+        if (_selectedMutuelleId != null) {
+          // La mise à jour du filtre ne doit pas être dans un setState ici
+          _filteredFormules = _allFormules.where((f) => f.mutuelleId == _selectedMutuelleId).toList();
+        }
       }
     } catch (e) {
-      debugPrint('Erreur chargement profil: $e');
+      debugPrint('Erreur chargement des données initiales: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur de chargement des données: $e')),
+        );
+      }
     } finally {
-      setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
+  }
+
+  Future<Map<String, dynamic>?> _loadUserProfileData() async {
+    final user = supabase.auth.currentUser;
+    if (user == null) return null;
+
+    return await supabase
+        .from('user_infos')
+        .select('username, date_of_birth, mutuelle_id, mutuelle_formule_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
   }
 
   Future<void> _saveProfile() async {
@@ -72,21 +131,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (user == null) return;
 
     final data = {
+      'user_id': user.id,
       'username': _usernameController.text.trim(),
-      'date_of_birth': _birthDate != null
-          ? DateFormat('yyyy-MM-dd').format(_birthDate!)
-          : null,
-      'mituelle_id': _selectedMutuelle,
-      'mituelle_formule_id': _selectedFormule,
-      'regime_assurance_maladie_id': _selectedRegime,
+      'date_of_birth': _birthDate?.toIso8601String(),
+      'mutuelle_id': _selectedMutuelleId,
+      'mutuelle_formule_id': _selectedFormuleId,
     };
 
     try {
-      await supabase
-          .from('user_infos')
-          .update(data)
-          .eq('user_id', user.id);
-
+      await supabase.from('user_infos').upsert(data, onConflict: 'user_id');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Profil mis à jour ✅')),
@@ -96,10 +149,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
       debugPrint('Erreur maj profil: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erreur lors de la mise à jour ❌')),
+          SnackBar(content: Text('Erreur lors de la mise à jour : $e')),
         );
       }
     }
+  }
+
+  void _updateFilteredFormules(int mutuelleId) {
+    setState(() {
+      _filteredFormules = _allFormules.where((formule) => formule.mutuelleId == mutuelleId).toList();
+      if (_selectedFormuleId != null && !_filteredFormules.any((f) => f.id == _selectedFormuleId)) {
+        _selectedFormuleId = null;
+      }
+    });
   }
 
   void _selectBirthDate() async {
@@ -116,43 +178,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     if (_loading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
-      backgroundColor: cs.surface,
       appBar: AppBar(
-        title: Text('Mon profil',
-            style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
-        centerTitle: true,
-        elevation: 0,
-        backgroundColor: cs.surface,
-        foregroundColor: cs.onSurface,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.save_rounded),
-            onPressed: _saveProfile,
-            tooltip: 'Enregistrer les modifications',
-          ),
-        ],
+        title: Text('Mon profil', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+        actions: [IconButton(icon: const Icon(Icons.save_rounded), onPressed: _saveProfile)],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
+            // ... Avatar et autres widgets
             CircleAvatar(
               radius: 45,
-              backgroundColor: cs.primaryContainer,
+              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
               child:
               const Icon(Icons.person, size: 50, color: Colors.white),
             ),
             const SizedBox(height: 12),
-            Text('Bonjour 👋', style: GoogleFonts.poppins(fontSize: 18)),
-            const SizedBox(height: 6),
             TextField(
               controller: _usernameController,
               decoration: InputDecoration(
@@ -174,62 +220,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             const Divider(height: 30),
-            DropdownButtonFormField<String>(
-              value: _selectedMutuelle,
-              hint: const Text('Mutuelle'),
-              items: mutuelles
-                  .map((m) => DropdownMenuItem(value: m, child: Text(m)))
-                  .toList(),
-              onChanged: (v) => setState(() => _selectedMutuelle = v),
+
+            // === MENU DÉROULANT DES MUTUELLES ===
+            DropdownButtonFormField<int>(
+              value: _selectedMutuelleId,
+              hint: const Text('Choisir une mutuelle'),
+              items: _allMutuelles.map((m) => DropdownMenuItem(value: m.id, child: Text(m.name))).toList(),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() => _selectedMutuelleId = value);
+                  _updateFilteredFormules(value);
+                }
+              },
               decoration: InputDecoration(
                 labelText: 'Mutuelle',
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
               ),
             ),
             const SizedBox(height: 20),
-            DropdownButtonFormField<String>(
-              value: _selectedFormule,
-              hint: const Text('Formule'),
-              items: formules
-                  .map((f) => DropdownMenuItem(value: f, child: Text(f)))
-                  .toList(),
-              onChanged: (v) => setState(() => _selectedFormule = v),
+
+            // === MENU DÉROULANT DES FORMULES ===
+            DropdownButtonFormField<int>(
+              value: _selectedFormuleId,
+              hint: const Text('Choisir une formule'),
+              items: _filteredFormules.map((f) => DropdownMenuItem(value: f.id, child: Text(f.name))).toList(),
+              onChanged: _selectedMutuelleId == null ? null : (value) => setState(() => _selectedFormuleId = value),
               decoration: InputDecoration(
                 labelText: 'Formule',
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10)),
-              ),
-            ),
-            const SizedBox(height: 20),
-            DropdownButtonFormField<String>(
-              value: _selectedRegime,
-              hint: const Text('Régime d’assurance maladie'),
-              items: regimes
-                  .map((r) => DropdownMenuItem(value: r, child: Text(r)))
-                  .toList(),
-              onChanged: (v) => setState(() => _selectedRegime = v),
-              decoration: InputDecoration(
-                labelText: 'Régime d’assurance maladie',
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                filled: _selectedMutuelleId == null,
+                fillColor: Colors.grey.shade200,
               ),
             ),
             const SizedBox(height: 40),
+
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: _saveProfile,
+                icon: const Icon(Icons.save_rounded, color: Colors.white),
+                label: const Text('Enregistrer les modifications', style: TextStyle(color: Colors.white, fontSize: 16)),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  backgroundColor: cs.primary,
-                ),
-                icon: const Icon(Icons.save_rounded, color: Colors.white),
-                label: const Text(
-                  'Enregistrer les modifications',
-                  style: TextStyle(color: Colors.white, fontSize: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  backgroundColor: Theme.of(context).colorScheme.primary,
                 ),
               ),
             ),
