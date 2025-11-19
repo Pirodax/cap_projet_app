@@ -71,10 +71,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _usernameController = TextEditingController();
-    _loadInitialData(); // ↔️ CHANGÉ: Renommage de la fonction pour plus de clarté.
+    _loadInitialData();
   }
 
-  // ↔️ CHANGÉ: La fonction charge maintenant toutes les données initiales.
   Future<void> _loadInitialData() async {
     try {
       // On charge tout en parallèle pour plus d'efficacité
@@ -116,7 +115,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // ✨ NOUVEAU: Fonction dédiée pour charger uniquement le profil de l'utilisateur.
   Future<Map<String, dynamic>?> _loadUserProfileData() async {
     final user = supabase.auth.currentUser;
     if (user == null) return null;
@@ -124,7 +122,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return await supabase
         .from('user_infos')
         .select('username, date_of_birth, mutuelle_id, mutuelle_formule_id')
-        .eq('id', user.id) // ↔️ CORRIGÉ: Votre colonne de clé étrangère est 'id' dans 'user_infos', pas 'user_id'
+        .eq('user_id', user.id)
         .maybeSingle();
   }
 
@@ -133,7 +131,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (user == null) return;
 
     final data = {
-      'id': user.id, // ↔️ CORRIGÉ: La colonne clé est 'id'
+      'user_id': user.id,
       'username': _usernameController.text.trim(),
       'date_of_birth': _birthDate?.toIso8601String(),
       'mutuelle_id': _selectedMutuelleId,
@@ -141,7 +139,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     };
 
     try {
-      await supabase.from('user_infos').upsert(data);
+      await supabase.from('user_infos').upsert(data, onConflict: 'user_id');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Profil mis à jour ✅')),
