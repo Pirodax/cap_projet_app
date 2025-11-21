@@ -59,31 +59,14 @@ class SoinDetailScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF4F46E5).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(
-                          Icons.euro,
-                          color: Color(0xFF4F46E5),
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'Base de remboursement',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF6B7280),
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                    ],
+                  const Text(
+                    'Base de remboursement',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF6B7280),
+                      letterSpacing: 0.3,
+                    ),
                   ),
                   const SizedBox(height: 24),
                   Row(
@@ -128,31 +111,14 @@ class SoinDetailScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF4F46E5).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(
-                          Icons.info_outline,
-                          color: Color(0xFF4F46E5),
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'Secteur 1',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF1A1A1A),
-                          letterSpacing: 0.2,
-                        ),
-                      ),
-                    ],
+                  const Text(
+                    'Secteur 1',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1A1A1A),
+                      letterSpacing: 0.2,
+                    ),
                   ),
                   const SizedBox(height: 20),
                   Text(
