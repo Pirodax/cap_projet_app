@@ -411,68 +411,20 @@ class _HistoriquePageState extends State<HistoriquePage>
   }
 
   Widget _buildQuickStats() {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildStatCard(
-            'Total économisé',
-            TweenAnimationBuilder<double>(
-              duration: const Duration(milliseconds: 2000),
-              tween: Tween<double>(begin: 0, end: _totalEconomie),
-              curve: Curves.easeOut,
-              builder: (context, double value, child) {
-                return Text(
-                  '${value.toStringAsFixed(0)}€',
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green,
-                  ),
-                );
-              },
-            ),
-            Icons.savings,
-            Colors.green,
+    return Center(
+      child: _buildStatCard(
+        'Simulations',
+        Text(
+          '${_simulations.length}',
+          style: const TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.blue,
           ),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard(
-            'Simulations',
-            Text(
-              '${_simulations.length}',
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue,
-              ),
-            ),
-            Icons.history,
-            Colors.blue,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard(
-            'Économie moy.',
-            AnimatedBuilder(
-              animation: _animation,
-              builder: (context, child) {
-                return Text(
-                  '${(_tauxEconomie * _animation.value).toStringAsFixed(0)}%',
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.orange,
-                  ),
-                );
-              },
-            ),
-            Icons.trending_up,
-            Colors.orange,
-          ),
-        ),
-      ],
+        Icons.history,
+        Colors.blue,
+      ),
     );
   }
 
