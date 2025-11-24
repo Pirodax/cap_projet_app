@@ -1,8 +1,9 @@
-import 'dart:ui';import 'dart:math'; // Importer pour générer des couleurs aléatoires
+import 'dart:ui';import 'dart:math'; // pour générer des couleurs aléatoires
 
 import '../services/category_service.dart';
 import 'package:flutter/material.dart';
 import '../widgets/Search_Bar.dart';
+import 'pagesimu.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -21,11 +22,9 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Map<String, dynamic>> _allCategories = [];
   List<Map<String, dynamic>> _filteredCategories = [];
 
-  // Données locales pour les articles, conservées telles quelles.
   final List<Map<String, dynamic>> _articles = [
     {'title': 'Nouvelles mesures de remboursement', 'subtitle': 'Découvrez les changements pour 2024...', 'icon': Icons.article},
     {'title': 'Campagne de prévention grippe', 'subtitle': 'Pensez à vous faire vacciner...', 'icon': Icons.campaign},
-    // ... reste des articles
   ];
 
   @override
@@ -35,8 +34,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _focusNode.addListener(_handleFocusChange);
     _searchController.addListener(_handleSearchChange);
   }
-
-  // Le reste des méthodes initState, dispose, etc. reste inchangé...
 
   void _handleFocusChange() {
     if (_focusNode.hasFocus != _isSearching) {
@@ -53,7 +50,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ? []
           : _allCategories
           .where((category) {
-        // ✅ CORRIGÉ: Utiliser 'name' au lieu de 'nom'
         final categoryName = (category['name'] as String? ?? '').toLowerCase();
         return categoryName.contains(query);
       })
@@ -112,7 +108,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildMainContent(double topPadding) {
-    // ... Le contenu principal (Titre, etc.) reste identique
+    // Le contenu principal (Titre, etc.)
     return ListView(
       padding: EdgeInsets.zero,
       children: [
@@ -140,8 +136,47 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         const SizedBox(height: 20),
         _buildCategoriesSection(),
+
+        const SizedBox(height: 20),
+        _boutonSimulateur(),
         _buildNewsSection(),
       ],
+    );
+  }
+
+  Widget _boutonSimulateur() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: ElevatedButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => PageSimu()),
+          );
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.teal,
+          padding: EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.calculate, color: Colors.white),
+            SizedBox(width: 12),
+            Text(
+              'Simuler un remboursement',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -160,7 +195,6 @@ class _HomeScreenState extends State<HomeScreen> {
         }
         _allCategories = snapshot.data!;
 
-        // La section horizontale est maintenant construite avec les données de la DB
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -179,7 +213,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 itemCount: _allCategories.length,
                 itemBuilder: (context, index) {
                   final item = _allCategories[index];
-                  // ✅ CORRIGÉ: Utiliser 'name' pour le titre et 'icon' pour l'emoji
                   final title = item['name'] as String? ?? 'Sans nom';
                   final iconString = item['icon'] as String? ?? '❓';
 
@@ -189,13 +222,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       width: 120,
                       margin: const EdgeInsets.only(right: 15),
                       decoration: BoxDecoration(
-                        color: _getRandomColor(), // Utilise une couleur aléatoire prédéfinie
+                        color: _getRandomColor(),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          // ✅ CORRIGÉ: Utiliser un Widget Text pour afficher l'emoji
                           Text(
                             iconString,
                             style: const TextStyle(fontSize: 40),
@@ -219,7 +251,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // La méthode _buildNewsSection() reste inchangée
   Widget _buildNewsSection() {
     return Padding(
       padding: const EdgeInsets.all(20.0),
@@ -275,12 +306,10 @@ class _HomeScreenState extends State<HomeScreen> {
             itemCount: _filteredCategories.length,
             itemBuilder: (context, index) {
               final category = _filteredCategories[index];
-              // ✅ CORRIGÉ: Utiliser 'name' et 'icon'
               final categoryName = category['name'] as String? ?? 'Sans nom';
               final categoryIcon = category['icon'] as String? ?? '❓';
 
               return ListTile(
-                // ✅ CORRIGÉ: Afficher l'emoji dans un Text
                 leading: Text(categoryIcon, style: const TextStyle(fontSize: 24)),
                 title: Text(
                   categoryName,
