@@ -79,12 +79,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   int? _selectedMutuelleId;
   int? _selectedFormuleId;
-  int? _selectedRegimeId; // ✨ NOUVEAU
+  int? _selectedRegimeId;
 
   List<Mutuelle> _allMutuelles = [];
   List<Formule> _allFormules = [];
   List<Formule> _filteredFormules = [];
-  List<Regime> _allRegimes = []; // ✨ NOUVEAU
+  List<Regime> _allRegimes = [];
 
   bool _loading = true;
 
@@ -106,20 +106,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final results = await Future.wait([
         _profileService.getMutuelles(), // index 0
         _profileService.getFormules(),  // index 1
-        _profileService.getRegimes(),   // index 2 (✨ NOUVEAU)
+        _profileService.getRegimes(),   // index 2
         _loadUserProfileData(),         // index 3
       ]);
 
       _allMutuelles = results[0] as List<Mutuelle>;
       _allFormules = results[1] as List<Formule>;
-      _allRegimes = results[2] as List<Regime>; // ✨ NOUVEAU
+      _allRegimes = results[2] as List<Regime>;
       final userData = results[3] as Map<String, dynamic>?;
 
       if (userData != null) {
         _usernameController.text = userData['username'] ?? '';
         _selectedMutuelleId = userData['mutuelle_id'];
         _selectedFormuleId = userData['mutuelle_formule_id'];
-        _selectedRegimeId = userData['regime_assurance_maladie_id']; // ✨ NOUVEAU
+        _selectedRegimeId = userData['regime_assurance_maladie_id'];
 
         if (userData['date_of_birth'] != null) {
           _birthDate = DateTime.tryParse(userData['date_of_birth']);
@@ -156,10 +156,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final data = {
       'user_id': user.id,
       'username': _usernameController.text.trim(),
-      'date_of_birth': _birthDate?.toIso8601String(), // ✨ Date sauvegardée
+      'date_of_birth': _birthDate?.toIso8601String(),
       'mutuelle_id': _selectedMutuelleId,
       'mutuelle_formule_id': _selectedFormuleId,
-      'regime_assurance_maladie_id': _selectedRegimeId, // ✨ Régime sauvegardé
+      'regime_assurance_maladie_id': _selectedRegimeId,
     };
 
     try {
