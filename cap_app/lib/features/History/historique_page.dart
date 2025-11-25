@@ -324,10 +324,6 @@ class _HistoriquePageState extends State<HistoriquePage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Statistiques rapides
-            _buildQuickStats(),
-            const SizedBox(height: 20),
-
             // Barre de recherche
             _buildSearchBar(),
             const SizedBox(height: 16),
@@ -406,57 +402,6 @@ class _HistoriquePageState extends State<HistoriquePage>
             const SizedBox(height: 20),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildQuickStats() {
-    return Center(
-      child: _buildStatCard(
-        'Simulations',
-        Text(
-          '${_simulations.length}',
-          style: const TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Colors.blue,
-          ),
-        ),
-        Icons.history,
-        Colors.blue,
-      ),
-    );
-  }
-
-  Widget _buildStatCard(String label, Widget value, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 8),
-          value,
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.grey[600],
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -1048,7 +993,7 @@ class _HistoriquePageState extends State<HistoriquePage>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Économie estimée',
+                      'Remboursement estimé',
                       style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                     const SizedBox(height: 4),
@@ -1250,7 +1195,7 @@ class _HistoriquePageState extends State<HistoriquePage>
               ),
               const SizedBox(height: 32),
               _buildDetailRow('Montant total', '${simulation.montant.toStringAsFixed(2)} €'),
-              _buildDetailRow('Remboursement prévu', '${simulation.economieEstimee.toStringAsFixed(2)} €'),
+              _buildDetailRow('Remboursement estimé', '${simulation.economieEstimee.toStringAsFixed(2)} €'),
               _buildDetailRow(
                 'Reste à charge',
                 '${(simulation.montant - simulation.economieEstimee).toStringAsFixed(2)} €',
