@@ -1,8 +1,10 @@
-import 'dart:ui';import 'dart:math'; // Importer pour générer des couleurs aléatoires
+import 'dart:ui';
+import 'dart:math';
 
 import '../services/category_service.dart';
 import 'package:flutter/material.dart';
 import '../widgets/Search_Bar.dart';
+import 'category_details_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -71,11 +73,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _clearSearch() => _searchController.clear();
-
-  void _selectSearchTerm(String term) {
-    _searchController.text = term;
-    _focusNode.unfocus();
-  }
 
   // Fonction pour générer une couleur aléatoire pour les catégories
   Color _getRandomColor() {
@@ -184,7 +181,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   final iconString = item['icon'] as String? ?? '❓';
 
                   return GestureDetector(
-                    onTap: () => _selectSearchTerm(title),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CategoryDetailsScreen(
+                            categoryId: item['id'] as int,
+                            categoryName: title,
+                            categoryIcon: iconString,
+                          ),
+                        ),
+                      );
+                    },
                     child: Container(
                       width: 120,
                       margin: const EdgeInsets.only(right: 15),
@@ -286,7 +294,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   categoryName,
                   style: const TextStyle(color: Colors.white),
                 ),
-                onTap: () => _selectSearchTerm(categoryName),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CategoryDetailsScreen(
+                        categoryId: category['id'] as int,
+                        categoryName: categoryName,
+                        categoryIcon: categoryIcon,
+                      ),
+                    ),
+                  );
+                },
               );
             },
           ),

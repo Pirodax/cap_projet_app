@@ -20,4 +20,18 @@ class CategoryService {
       return [];
     }
   }
+
+  Future<List<Map<String, dynamic>>> getDetailSoins(int categoryId) async {
+    try {
+      final response = await supabase
+          .from('soins')
+          .select('id, name, brss, detail, icon')
+          .eq('categorie_id', categoryId);
+
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('Error fetching soins: $e');
+      return [];
+    }
+  }
 }
