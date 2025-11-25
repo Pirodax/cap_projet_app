@@ -25,7 +25,7 @@ class CategoryService {
     try {
       final response = await supabase
           .from('soins')
-          .select('id, name, brss, detail')
+          .select('id, name, brss, detail, icon')
           .eq('categorie_id', categoryId);
 
       return List<Map<String, dynamic>>.from(response);

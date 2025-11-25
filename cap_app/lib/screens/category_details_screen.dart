@@ -38,7 +38,10 @@ class _CategoryDetailsScreenState extends State<CategoryDetailsScreen> {
         iconTheme: const IconThemeData(color: Color(0xFF1A1A1A)),
         title: Row(
           children: [
-            Text(widget.categoryIcon, style: const TextStyle(fontSize: 24)),
+            Text(
+              widget.categoryIcon,
+              style: const TextStyle(fontSize: 24),
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -145,9 +148,9 @@ class _CategoryDetailsScreenState extends State<CategoryDetailsScreen> {
             itemCount: detailSoins.length,
             itemBuilder: (context, index) {
               final soin = detailSoins[index];
+              final int soinId = soin['id'] as int;
               final name = soin['name'] as String? ?? 'Sans nom';
-              final brss = soin['brss'] as num? ?? 0;
-              final detail = soin['detail'] as String? ?? '';
+              final iconName = soin['icon'] as String?;
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 12),
@@ -165,9 +168,7 @@ class _CategoryDetailsScreenState extends State<CategoryDetailsScreen> {
                         context,
                         MaterialPageRoute(
                           builder: (context) => SoinDetailScreen(
-                            soinName: name,
-                            taux: brss.toDouble(),
-                            detail: detail,
+                            soinId: soinId,
                           ),
                         ),
                       );
@@ -176,45 +177,26 @@ class _CategoryDetailsScreenState extends State<CategoryDetailsScreen> {
                       padding: const EdgeInsets.all(16),
                       child: Row(
                         children: [
+                          Text(
+                            iconName ?? '',
+                            style: const TextStyle(fontSize: 24),
+                          ),
+                          const SizedBox(width: 16),
                           Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  name,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 15,
-                                    color: Color(0xFF1A1A1A),
-                                    height: 1.4,
-                                  ),
+                            child: Center(
+                              child: Text(
+                                name,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 15,
+                                  color: Color(0xFF1A1A1A),
+                                  height: 1.4,
                                 ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF4F46E5).withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: Text(
-                                        '$brss €',
-                                        style: const TextStyle(
-                                          color: Color(0xFF4F46E5),
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 13,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                              ),
                             ),
                           ),
+                          const SizedBox(width: 16), // Équilibre pour centrer visuellement
                           const Icon(
                             Icons.chevron_right,
                             size: 20,
