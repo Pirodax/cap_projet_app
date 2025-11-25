@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:intl/date_symbol_data_local.dart'; // 👈 IMPORT IMPORTANT
+import 'package:intl/date_symbol_data_local.dart'; // 👈 IMPORT IMPORTANT POUR LES DATES
+
 // =============================================
 // 1️⃣ MODÈLES DE DONNÉES
 // =============================================
@@ -19,7 +20,6 @@ class Formule {
   Formule({required this.id, required this.mutuelleId, required this.name});
 }
 
-// ✨ NOUVEAU : Modèle pour le régime d'assurance maladie
 class Regime {
   final int id;
   final String name;
@@ -46,7 +46,6 @@ class ProfileService {
         .toList();
   }
 
-  // ✨ NOUVEAU : Récupération des régimes depuis la table 'assurance_maladie_regimes'
   Future<List<Regime>> getRegimes() async {
     try {
       final response = await supabase.from('assurance_maladie_regimes').select('id, name');
@@ -93,6 +92,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     _usernameController = TextEditingController();
 
+    // Initialisation de la localisation pour les dates (français)
     initializeDateFormatting('fr_FR', null).then((_) {
       if (mounted) {
         _loadInitialData();
@@ -141,7 +141,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = supabase.auth.currentUser;
     if (user == null) return null;
 
-    // ✨ NOUVEAU : On récupère aussi le regime_assurance_maladie_id
     return await supabase
         .from('user_infos')
         .select('username, date_of_birth, mutuelle_id, mutuelle_formule_id, regime_assurance_maladie_id')
@@ -197,7 +196,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final now = DateTime.now();
     final initialDate = _birthDate ?? DateTime(now.year - 25);
 
-    // Design moderne pour le date picker
     final picked = await showDatePicker(
       context: context,
       initialDate: initialDate,
@@ -207,7 +205,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: Colors.teal, // Couleur santé
+              primary: Colors.teal,
               onPrimary: Colors.white,
               onSurface: Colors.black87,
             ),
@@ -249,7 +247,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA), // Fond gris très clair/moderne
+      backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
         title: Text('Mon Profil', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.black87)),
         centerTitle: true,
@@ -257,42 +255,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black87),
       ),
+
+      // 1️⃣ Le corps de la page (scrollable)
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 100), // Marge en bas pour le bouton sticky
         child: Column(
           children: [
-            // 1. Section Avatar
-            Stack(
-              alignment: Alignment.bottomRight,
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 4),
-                    boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, spreadRadius: 2)
-                    ],
-                  ),
-                  child: CircleAvatar(
-                    radius: 50,
-                    backgroundColor: Colors.teal.shade100,
-                    child: Icon(Icons.person, size: 55, color: Colors.teal.shade700),
-                  ),
+            // 1. Section Avatar (Centrée, sans icône edit)
+            Center(
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 4),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, spreadRadius: 2)
+                  ],
                 ),
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: const BoxDecoration(
-                    color: Colors.teal,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.edit, color: Colors.white, size: 16),
+                child: CircleAvatar(
+                  radius: 50,
+                  backgroundColor: Colors.teal.shade100,
+                  child: Icon(Icons.person, size: 55, color: Colors.teal.shade700),
                 ),
-              ],
+              ),
             ),
             const SizedBox(height: 30),
 
-            // 2. Carte Formulaire
+            // 2. Carte Formulaire Informations
             Container(
               padding: const EdgeInsets.all(25),
               decoration: BoxDecoration(
@@ -319,7 +308,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // Champ Date de Naissance (Custom tap)
+                  // Champ Date de Naissance
                   GestureDetector(
                     onTap: _selectBirthDate,
                     child: AbsorbPointer(
@@ -362,18 +351,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Text("Couverture Santé", style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
                   const SizedBox(height: 20),
 
-                  // ✨ NOUVEAU : Dropdown Régime Assurance Maladie
+                  // Régime
                   DropdownButtonFormField<int>(
                     value: _selectedRegimeId,
                     hint: const Text('Choisir un régime'),
                     items: _allRegimes.map((r) => DropdownMenuItem(value: r.id, child: Text(r.name))).toList(),
                     onChanged: (value) => setState(() => _selectedRegimeId = value),
                     decoration: _buildInputDecoration('Régime d’assurance maladie', Icons.local_hospital_outlined),
-                    isExpanded: true, // Empêche le débordement de texte
+                    isExpanded: true,
                   ),
                   const SizedBox(height: 20),
 
-                  // Dropdown Mutuelle
+                  // Mutuelle
                   DropdownButtonFormField<int>(
                     value: _selectedMutuelleId,
                     hint: const Text('Ma mutuelle'),
@@ -388,7 +377,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // Dropdown Formule
+                  // Formule
                   DropdownButtonFormField<int>(
                     value: _selectedFormuleId,
                     hint: const Text('Ma formule'),
@@ -402,29 +391,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
             ),
+          ],
+        ),
+      ),
 
-            const SizedBox(height: 40),
-
-            // 4. Bouton d'action
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _saveProfile,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  backgroundColor: Colors.teal,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  elevation: 5,
-                  shadowColor: Colors.teal.withOpacity(0.4),
-                ),
-                child: Text(
-                  'Enregistrer les modifications',
-                  style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
-                ),
+      // 2️⃣ Le Bouton Fixe en bas (Zone blanche "Sticky")
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.fromLTRB(20, 15, 20, 30),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 20,
+              offset: const Offset(0, -5),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _saveProfile,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                backgroundColor: Colors.teal,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                elevation: 0,
+              ),
+              child: Text(
+                'Enregistrer les modifications',
+                style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
               ),
             ),
-            const SizedBox(height: 20),
-          ],
+          ),
         ),
       ),
     );
