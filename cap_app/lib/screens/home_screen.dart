@@ -1,5 +1,4 @@
 import 'dart:ui';
-import 'dart:math';
 
 import '../services/category_service.dart';
 import 'package:flutter/material.dart';
@@ -74,13 +73,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _clearSearch() => _searchController.clear();
 
-  // Fonction pour générer une couleur aléatoire pour les catégories
-  Color _getRandomColor() {
-    final List<Color> presetColors = [
-      Colors.blue.shade300, Colors.green.shade300, Colors.orange.shade300,
-      Colors.purple.shade300, Colors.red.shade300, Colors.teal.shade300,
-    ];
-    return presetColors[Random().nextInt(presetColors.length)];
+  // Liste de couleurs fixes pour les catégories
+  static const List<Color> _categoryColors = [
+    Color(0xFFFFA726), // Orange
+    Color(0xFFAB47BC), // Violet
+    Color(0xFF42A5F5), // Bleu
+    Color(0xFF66BB6A), // Vert
+    Color(0xFF7E57C2), // Violet foncé
+    Color(0xFFFFCA28), // Jaune
+    Color(0xFF26C6DA), // Cyan
+    Color(0xFFEF5350), // Rouge
+    Color(0xFF8BC34A), // Vert clair
+  ];
+
+  // Fonction pour obtenir une couleur fixe basée sur l'index
+  Color _getCategoryColor(int index) {
+    return _categoryColors[index % _categoryColors.length];
   }
 
   @override
@@ -197,7 +205,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       width: 120,
                       margin: const EdgeInsets.only(right: 15),
                       decoration: BoxDecoration(
-                        color: _getRandomColor(), // Utilise une couleur aléatoire prédéfinie
+                        color: _getCategoryColor(index),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Column(
