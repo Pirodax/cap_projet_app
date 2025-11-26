@@ -4,6 +4,7 @@ import '../services/category_service.dart';
 import 'package:flutter/material.dart';
 import '../widgets/Search_Bar.dart';
 import 'category_details_screen.dart';
+import 'soin_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -21,6 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late Future<List<Map<String, dynamic>>> _categoriesFuture;
   List<Map<String, dynamic>> _allCategories = [];
   List<Map<String, dynamic>> _filteredCategories = [];
+  List<Map<String, dynamic>> _filteredSoins = [];
 
   // Données locales pour les articles, conservées telles quelles.
   final List<Map<String, dynamic>> _articles = [
@@ -47,18 +49,31 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _handleSearchChange() {
+  void _handleSearchChange() async {
     final query = _searchController.text.toLowerCase();
+
+    if (query.isEmpty) {
+      setState(() {
+        _filteredCategories = [];
+        _filteredSoins = [];
+      });
+      return;
+    }
+
+    // Recherche catégories localement
+    final filteredCats = _allCategories
+        .where((category) {
+          final categoryName = (category['name'] as String? ?? '').toLowerCase();
+          return categoryName.contains(query);
+        })
+        .toList();
+
+    // Recherche soins depuis Supabase
+    final soins = await _categoryService.searchSoins(query);
+
     setState(() {
-      _filteredCategories = query.isEmpty
-          ? []
-          : _allCategories
-          .where((category) {
-        // ✅ CORRIGÉ: Utiliser 'name' au lieu de 'nom'
-        final categoryName = (category['name'] as String? ?? '').toLowerCase();
-        return categoryName.contains(query);
-      })
-          .toList();
+      _filteredCategories = filteredCats;
+      _filteredSoins = soins;
     });
   }
 
@@ -273,50 +288,89 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildSearchOverlay(double topPadding) {
+    final hasResults = _filteredCategories.isNotEmpty || _filteredSoins.isNotEmpty;
+
     return GestureDetector(
       onTap: _focusNode.unfocus,
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
         child: Container(
           color: Colors.black.withOpacity(0.8),
-          child: _filteredCategories.isEmpty
+          child: !hasResults
               ? Center(
-            child: Text(
-              _searchController.text.isEmpty ? 'Que recherchez-vous ?' : 'Aucun résultat',
-              style: const TextStyle(color: Colors.white, fontSize: 20),
-            ),
-          )
-              : ListView.builder(
-            padding: EdgeInsets.only(top: topPadding),
-            itemCount: _filteredCategories.length,
-            itemBuilder: (context, index) {
-              final category = _filteredCategories[index];
-              // ✅ CORRIGÉ: Utiliser 'name' et 'icon'
-              final categoryName = category['name'] as String? ?? 'Sans nom';
-              final categoryIcon = category['icon'] as String? ?? '❓';
-
-              return ListTile(
-                // ✅ CORRIGÉ: Afficher l'emoji dans un Text
-                leading: Text(categoryIcon, style: const TextStyle(fontSize: 24)),
-                title: Text(
-                  categoryName,
-                  style: const TextStyle(color: Colors.white),
-                ),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => CategoryDetailsScreen(
-                        categoryId: category['id'] as int,
-                        categoryName: categoryName,
-                        categoryIcon: categoryIcon,
+                  child: Text(
+                    _searchController.text.isEmpty ? 'Que recherchez-vous ?' : 'Aucun résultat',
+                    style: const TextStyle(color: Colors.white, fontSize: 20),
+                  ),
+                )
+              : ListView(
+                  padding: EdgeInsets.only(top: topPadding),
+                  children: [
+                    // Section Catégories
+                    if (_filteredCategories.isNotEmpty) ...[
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Text(
+                          'Catégories',
+                          style: TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.bold),
+                        ),
                       ),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
+                      ..._filteredCategories.map((category) {
+                        final categoryName = category['name'] as String? ?? 'Sans nom';
+                        final categoryIcon = category['icon'] as String? ?? '❓';
+
+                        return ListTile(
+                          leading: Text(categoryIcon, style: const TextStyle(fontSize: 24)),
+                          title: Text(categoryName, style: const TextStyle(color: Colors.white)),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => CategoryDetailsScreen(
+                                  categoryId: category['id'] as int,
+                                  categoryName: categoryName,
+                                  categoryIcon: categoryIcon,
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      }),
+                    ],
+                    // Section Soins
+                    if (_filteredSoins.isNotEmpty) ...[
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Text(
+                          'Soins',
+                          style: TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      ..._filteredSoins.map((soin) {
+                        final soinName = soin['name'] as String? ?? 'Sans nom';
+                        final categoryData = soin['categories_soins'] as Map<String, dynamic>?;
+                        final categoryName = categoryData?['name'] as String? ?? '';
+                        final categoryIcon = categoryData?['icon'] as String? ?? '💊';
+
+                        return ListTile(
+                          leading: Text(categoryIcon, style: const TextStyle(fontSize: 24)),
+                          title: Text(soinName, style: const TextStyle(color: Colors.white)),
+                          subtitle: Text(categoryName, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => SoinDetailScreen(
+                                  soinId: soin['id'] as int,
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      }),
+                    ],
+                  ],
+                ),
         ),
       ),
     );

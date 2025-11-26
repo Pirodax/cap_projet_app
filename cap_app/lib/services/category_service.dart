@@ -34,4 +34,18 @@ class CategoryService {
       return [];
     }
   }
+
+  Future<List<Map<String, dynamic>>> searchSoins(String query) async {
+    try {
+      final response = await supabase
+          .from('soins')
+          .select('id, name, categorie_id, categories_soins(name, icon)')
+          .ilike('name', '%$query%');
+
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('Error searching soins: $e');
+      return [];
+    }
+  }
 }
