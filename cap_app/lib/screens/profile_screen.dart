@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:intl/date_symbol_data_local.dart'; // 👈 IMPORT IMPORTANT POUR LES DATES
+import 'package:intl/date_symbol_data_local.dart';
 
 // =============================================
 // 1️⃣ MODÈLES DE DONNÉES
@@ -27,10 +27,11 @@ class Regime {
 }
 
 // =============================================
-// 2️⃣ CLASSE DE SERVICE
+// 2️⃣ CLASSE DE SERVICE (LOGIQUE CENTRALISÉE)
 // =============================================
 class ProfileService {
-  final supabase = Supabase.instance.client;
+  final SupabaseClient supabase;
+  ProfileService(this.supabase);
 
   Future<List<Mutuelle>> getMutuelles() async {
     final response = await supabase.from('mutuelles').select('id, name');
@@ -47,31 +48,52 @@ class ProfileService {
   }
 
   Future<List<Regime>> getRegimes() async {
-    try {
-      final response = await supabase.from('assurance_maladie_regimes').select('id, name');
-      return (response as List)
-          .map((item) => Regime(id: item['id'], name: item['name']))
-          .toList();
-    } catch (e) {
-      debugPrint('Erreur récupération régimes: $e');
-      return [];
+    final response = await supabase.from('assurance_maladie_regimes').select('id, name');
+    return (response as List)
+        .map((item) => Regime(id: item['id'], name: item['name']))
+        .toList();
+  }
+
+  Future<Map<String, dynamic>?> getUserProfile() async {
+    final user = supabase.auth.currentUser;
+    if (user == null) return null;
+
+    return await supabase
+        .from('user_infos')
+        .select('username, date_of_birth, mutuelle_id, mutuelle_formule_id, regime_assurance_maladie_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+  }
+
+  Future<void> saveUserProfile(Map<String, dynamic> data) async {
+    final user = supabase.auth.currentUser;
+    if (user == null) {
+      throw const AuthException('User not authenticated');
     }
+    final dataWithUser = {...data, 'user_id': user.id};
+    await supabase.from('user_infos').upsert(dataWithUser, onConflict: 'user_id');
+  }
+
+  Future<void> signOut() async {
+    await supabase.auth.signOut();
   }
 }
 
 // =============================================
-// 3️⃣ ÉCRAN DU PROFIL (UI MODERNE)
+// 3️⃣ ÉCRAN DU PROFIL (UI)
 // =============================================
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final SupabaseClient? supabaseClient;
+  final ProfileService? profileService;
+
+  const ProfileScreen({super.key, this.supabaseClient, this.profileService});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final supabase = Supabase.instance.client;
-  final _profileService = ProfileService();
+  late final ProfileService _profileService;
 
   late TextEditingController _usernameController;
   DateTime? _birthDate;
@@ -90,9 +112,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
+    final supabase = widget.supabaseClient ?? Supabase.instance.client;
+    _profileService = widget.profileService ?? ProfileService(supabase);
     _usernameController = TextEditingController();
 
-    // Initialisation de la localisation pour les dates (français)
     initializeDateFormatting('fr_FR', null).then((_) {
       if (mounted) {
         _loadInitialData();
@@ -102,12 +125,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadInitialData() async {
     try {
-      // Chargement parallèle de toutes les données
       final results = await Future.wait([
-        _profileService.getMutuelles(), // index 0
-        _profileService.getFormules(),  // index 1
-        _profileService.getRegimes(),   // index 2
-        _loadUserProfileData(),         // index 3
+        _profileService.getMutuelles(),
+        _profileService.getFormules(),
+        _profileService.getRegimes(),
+        _profileService.getUserProfile(), // Appel au service
       ]);
 
       _allMutuelles = results[0] as List<Mutuelle>;
@@ -125,7 +147,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _birthDate = DateTime.tryParse(userData['date_of_birth']);
         }
 
-        // Appliquer le filtre initial pour les formules
         if (_selectedMutuelleId != null) {
           _filteredFormules = _allFormules.where((f) => f.mutuelleId == _selectedMutuelleId).toList();
         }
@@ -137,23 +158,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Future<Map<String, dynamic>?> _loadUserProfileData() async {
-    final user = supabase.auth.currentUser;
-    if (user == null) return null;
-
-    return await supabase
-        .from('user_infos')
-        .select('username, date_of_birth, mutuelle_id, mutuelle_formule_id, regime_assurance_maladie_id')
-        .eq('user_id', user.id)
-        .maybeSingle();
-  }
-
   Future<void> _saveProfile() async {
-    final user = supabase.auth.currentUser;
-    if (user == null) return;
-
     final data = {
-      'user_id': user.id,
       'username': _usernameController.text.trim(),
       'date_of_birth': _birthDate?.toIso8601String(),
       'mutuelle_id': _selectedMutuelleId,
@@ -162,7 +168,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     };
 
     try {
-      await supabase.from('user_infos').upsert(data, onConflict: 'user_id');
+      await _profileService.saveUserProfile(data); // Appel au service
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -217,7 +223,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (picked != null) setState(() => _birthDate = picked);
   }
 
-  // 🎨 DESIGN: Méthode utilitaire pour le style des champs
+  Future<void> _signOut() async {
+    try {
+      await _profileService.signOut(); // Appel au service
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erreur lors de la déconnexion: $e'),
+          backgroundColor: Colors.red.shade600,
+        ),
+      );
+    }
+  }
+
   InputDecoration _buildInputDecoration(String label, IconData icon) {
     return InputDecoration(
       labelText: label,
@@ -255,14 +274,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black87),
       ),
-
-      // 1️⃣ Le corps de la page (scrollable)
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 100), // Marge en bas pour le bouton sticky
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
         child: Column(
           children: [
-            // 1. Section Avatar (Centrée, sans icône edit)
             Center(
               child: Container(
                 decoration: BoxDecoration(
@@ -280,8 +296,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             const SizedBox(height: 30),
-
-            // 2. Carte Formulaire Informations
             Container(
               padding: const EdgeInsets.all(25),
               decoration: BoxDecoration(
@@ -300,15 +314,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   Text("Informations Personnelles", style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
                   const SizedBox(height: 20),
-
-                  // Champ Username
                   TextField(
                     controller: _usernameController,
                     decoration: _buildInputDecoration('Nom d’utilisateur', Icons.person_outline),
                   ),
                   const SizedBox(height: 20),
-
-                  // Champ Date de Naissance
                   GestureDetector(
                     onTap: _selectBirthDate,
                     child: AbsorbPointer(
@@ -328,10 +338,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
             ),
-
             const SizedBox(height: 25),
-
-            // 3. Carte Santé
             Container(
               padding: const EdgeInsets.all(25),
               decoration: BoxDecoration(
@@ -350,8 +357,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   Text("Couverture Santé", style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
                   const SizedBox(height: 20),
-
-                  // Régime
                   DropdownButtonFormField<int>(
                     value: _selectedRegimeId,
                     hint: const Text('Choisir un régime'),
@@ -361,8 +366,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     isExpanded: true,
                   ),
                   const SizedBox(height: 20),
-
-                  // Mutuelle
                   DropdownButtonFormField<int>(
                     value: _selectedMutuelleId,
                     hint: const Text('Ma mutuelle'),
@@ -376,8 +379,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     decoration: _buildInputDecoration('Mutuelle', Icons.health_and_safety_outlined),
                   ),
                   const SizedBox(height: 20),
-
-                  // Formule
                   DropdownButtonFormField<int>(
                     value: _selectedFormuleId,
                     hint: const Text('Ma formule'),
@@ -391,11 +392,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
             ),
+            const SizedBox(height: 40),
+            Center(
+              child: TextButton.icon(
+                onPressed: _signOut,
+                icon: Icon(Icons.logout, color: Colors.red.shade400),
+                label: Text(
+                  'Se déconnecter',
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.red.shade400,
+                  ),
+                ),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    side: BorderSide(color: Colors.red.shade100),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
-
-      // 2️⃣ Le Bouton Fixe en bas (Zone blanche "Sticky")
       bottomNavigationBar: Container(
         padding: const EdgeInsets.fromLTRB(20, 15, 20, 30),
         decoration: BoxDecoration(

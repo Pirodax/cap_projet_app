@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'features/auth/screens/sign_in_screen.dart';
 import 'features/auth/screens/sign_up_screen.dart' as auth;
 import 'screens/home_screen.dart';
@@ -28,15 +29,44 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      initialRoute: '/',
+      home: const AuthStateListener(), // Remplacer initialRoute par home
       routes: {
-        '/': (_) => const SignInScreen(),
+        // Laisser la route signup pour la navigation explicite
         '/signup': (_) => const auth.SignUpScreen(),
-        '/main': (_) => const MainPage(),
       },
     );
   }
 }
+
+// Widget qui écoute les changements d'état d'authentification
+class AuthStateListener extends StatelessWidget {
+  const AuthStateListener({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<AuthState>(
+      stream: Supabase.instance.client.auth.onAuthStateChange,
+      builder: (context, snapshot) {
+        // Pendant le chargement de l'état initial
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        // Si l'utilisateur est connecté (session existe)
+        if (snapshot.hasData && snapshot.data?.session != null) {
+          return const MainPage();
+        } 
+        // Sinon, afficher l'écran de connexion
+        else {
+          return const SignInScreen();
+        }
+      },
+    );
+  }
+}
+
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -57,7 +87,7 @@ class _MainPageState extends State<MainPage> {
     final List<Widget> pages = [
       const HomeScreen(),
       const HistoriquePage(),
-      const ProfileScreen(), // ✅ on ne passe plus de paramètres ici
+      const ProfileScreen(),
     ];
 
     return Scaffold(
