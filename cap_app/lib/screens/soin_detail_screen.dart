@@ -857,4 +857,4 @@ class _SoinDetailScreenState extends State<SoinDetailScreen> {
       tauxNonConventionne: (_remboursementMutuelle!['taux_mutuelle_non_conventionne'] as num?)?.toDouble(),
     );
   }
-}
+}//
