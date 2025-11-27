@@ -806,8 +806,250 @@ class _SoinDetailScreenState extends State<SoinDetailScreen> {
             ],
 
             const SizedBox(height: 32),
+
+            // Section FAQ expandable
+            _buildExpandableFAQ(),
+
+            const SizedBox(height: 32),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildExpandableFAQ() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          childrenPadding: const EdgeInsets.all(20),
+          leading: const Icon(
+            Icons.help_outline,
+            color: Color(0xFF4F46E5),
+            size: 24,
+          ),
+          title: const Text(
+            'Comment est calculé votre remboursement ?',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1A1A1A),
+            ),
+          ),
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Formule de calcul
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF3F4F6),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Formule de calcul',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1A1A1A),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Reste à charge = Prix facturé - Remboursement Sécu - Remboursement Mutuelle',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF4F46E5),
+                          fontWeight: FontWeight.w600,
+                          height: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Avec :',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF6B7280),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        '• Remboursement Sécu = BRSS × (Taux Sécu / 100)\n'
+                            '• Remboursement Mutuelle = BRSS × (Taux Mutuelle / 100)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF6B7280),
+                          height: 1.6,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Définitions des termes
+                const Text(
+                  'Définitions',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1A1A1A),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                _buildDefinitionItem(
+                  '📋 BRSS',
+                  'Base de Remboursement de la Sécurité Sociale',
+                  'C\'est le tarif de référence fixé par la Sécurité sociale. '
+                      'Les remboursements sont TOUJOURS calculés sur cette base, '
+                      'même si le prix facturé est supérieur.',
+                ),
+                const SizedBox(height: 12),
+
+                _buildDefinitionItem(
+                  '🏥 Taux Sécu',
+                  'Taux de remboursement de la Sécurité sociale',
+                  'Pourcentage de la BRSS remboursé par la Sécurité sociale. '
+                      'Varie selon le type de soin (60%, 70%, 100%).',
+                ),
+                const SizedBox(height: 12),
+
+                _buildDefinitionItem(
+                  '🛡️ Taux Mutuelle',
+                  'Taux de remboursement de votre mutuelle',
+                  'Pourcentage de la BRSS remboursé par votre mutuelle. '
+                      'Varie selon votre formule et le type de praticien '
+                      '(conventionné ou non).',
+                ),
+                const SizedBox(height: 12),
+
+                _buildDefinitionItem(
+                  '⚕️ Praticien conventionné',
+                  'Secteur 1 ou Secteur 2 OPTAM',
+                  'Praticien qui applique les tarifs de la Sécurité sociale '
+                      'ou pratique des dépassements d\'honoraires maîtrisés. '
+                      'Meilleur remboursement.',
+                ),
+                const SizedBox(height: 12),
+
+                _buildDefinitionItem(
+                  '💰 Dépassement d\'honoraires',
+                  'Prix facturé > BRSS',
+                  'Lorsque le praticien facture plus que le tarif conventionné. '
+                      'Le remboursement reste calculé sur la BRSS, '
+                      'le surplus est à votre charge.',
+                ),
+
+                const SizedBox(height: 16),
+
+                // Exemple pratique
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEEF2FF),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFF4F46E5).withOpacity(0.2)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.lightbulb_outline,
+                            color: Color(0xFF4F46E5),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Exemple pratique',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF4F46E5),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Consultation spécialiste à 60€\n'
+                            '• BRSS : 31,50€\n'
+                            '• Taux Sécu : 70%\n'
+                            '• Taux Mutuelle : 110% (non conventionné)\n\n'
+                            'Calcul :\n'
+                            '• Sécu : 31,50€ × 70% = 22,05€\n'
+                            '• Mutuelle : 31,50€ × 110% = 34,65€\n'
+                            '• Total remboursé : 56,70€\n'
+                            '• Reste à charge : 60€ - 56,70€ = 3,30€',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF4F46E5),
+                          height: 1.6,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDefinitionItem(String emoji, String term, String definition) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFAFAFA),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                emoji,
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  term,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1A1A1A),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            definition,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xFF6B7280),
+              height: 1.5,
+            ),
+          ),
+        ],
       ),
     );
   }
