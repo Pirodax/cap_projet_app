@@ -73,28 +73,17 @@ class _CategoryDetailsScreenState extends State<CategoryDetailsScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
-                      Icons.error_outline,
-                      size: 48,
-                      color: Color(0xFFEF4444),
-                    ),
+                    const Icon(Icons.error_outline, size: 48, color: Color(0xFFEF4444)),
                     const SizedBox(height: 16),
                     const Text(
                       'Erreur',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF1A1A1A),
-                      ),
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       '${snapshot.error}',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Color(0xFF6B7280),
-                        fontSize: 14,
-                      ),
+                      style: const TextStyle(color: Color(0xFF6B7280)),
                     ),
                   ],
                 ),
@@ -109,28 +98,11 @@ class _CategoryDetailsScreenState extends State<CategoryDetailsScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      Icons.inbox_outlined,
-                      size: 48,
-                      color: Colors.grey.shade400,
-                    ),
+                    Icon(Icons.inbox_outlined, size: 48, color: Colors.grey.shade400),
                     const SizedBox(height: 16),
                     const Text(
                       'Aucun soin disponible',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF1A1A1A),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Aucun soin trouvé pour cette catégorie.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Color(0xFF6B7280),
-                        fontSize: 14,
-                      ),
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
@@ -145,6 +117,7 @@ class _CategoryDetailsScreenState extends State<CategoryDetailsScreen> {
             itemCount: detailSoins.length,
             itemBuilder: (context, index) {
               final soin = detailSoins[index];
+              final id = soin['id'] as int;
               final name = soin['name'] as String? ?? 'Sans nom';
               final brss = soin['brss'] as num? ?? 0;
               final detail = soin['detail'] as String? ?? '';
@@ -154,7 +127,7 @@ class _CategoryDetailsScreenState extends State<CategoryDetailsScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
+                  border: Border.all(color: const Color(0xFFE5E7EB)),
                 ),
                 child: Material(
                   color: Colors.transparent,
@@ -165,8 +138,9 @@ class _CategoryDetailsScreenState extends State<CategoryDetailsScreen> {
                         context,
                         MaterialPageRoute(
                           builder: (context) => SoinDetailScreen(
+                            soinId: id,
                             soinName: name,
-                            taux: brss.toDouble(),
+                            brss: brss.toDouble(),
                             detail: detail,
                           ),
                         ),
@@ -186,40 +160,31 @@ class _CategoryDetailsScreenState extends State<CategoryDetailsScreen> {
                                     fontWeight: FontWeight.w600,
                                     fontSize: 15,
                                     color: Color(0xFF1A1A1A),
-                                    height: 1.4,
                                   ),
                                 ),
                                 const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF4F46E5).withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: Text(
-                                        '$brss €',
-                                        style: const TextStyle(
-                                          color: Color(0xFF4F46E5),
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 13,
-                                        ),
-                                      ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF4F46E5).withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    'BRSS : $brss €',
+                                    style: const TextStyle(
+                                      color: Color(0xFF4F46E5),
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
                                     ),
-                                  ],
+                                  ),
                                 ),
                               ],
                             ),
                           ),
-                          const Icon(
-                            Icons.chevron_right,
-                            size: 20,
-                            color: Color(0xFF9CA3AF),
-                          ),
+                          const Icon(Icons.chevron_right, color: Color(0xFF9CA3AF)),
                         ],
                       ),
                     ),

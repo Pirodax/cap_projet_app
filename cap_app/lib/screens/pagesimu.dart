@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../services/remboursement_service.dart';
-import '../models/remboursement_result.dart';
-import '../core/supabase/supabase_init.dart';
+import 'package:percent_indicator/linear_percent_indicator.dart';
 
 class PageSimu extends StatefulWidget {
   const PageSimu({super.key});
@@ -11,475 +8,494 @@ class PageSimu extends StatefulWidget {
   State<PageSimu> createState() => _PageSimuState();
 }
 
-class _PageSimuState extends State<PageSimu> {
-  final service = RemboursementService();
-  final prixController = TextEditingController();
+class _PageSimuState extends State<PageSimu> with SingleTickerProviderStateMixin {
+  String? selectedSoin;
+  String? mutuelleName;
+  String? planName;
+  String? estEtudiant;
+  int? age;
+  String? departement;
+  double estimation = 0.0;
 
-  List<Map<String, dynamic>> soins = [];
-  int? soinSelectionne;
-  bool chargement = true;
-  bool calcul = false;
-  RemboursementResult? resultat;
+  late AnimationController _controller;
+  bool _isDarkMode = false; // 🔹 état manuel du thème
+
+  final List<String> soins = [
+    'Consultation généraliste',
+    'Consultation spécialiste',
+    'Hospitalisation',
+    'Soins dentaires',
+    'Optique (lunettes, lentilles)',
+    'Médicaments sur ordonnance',
+  ];
+
+  final List<String> mutuelles = ['MGEN', 'Alan', 'Axa', 'Mutualia'];
+  final List<String> plans = ['Essentiel', 'Standard', 'Confort', 'Premium'];
+
+  final Map<String, int> tauxBRSS = {
+    'MGEN': 200,
+    'Alan': 150,
+    'Axa': 300,
+    'Mutualia': 100,
+  };
+
+  final Map<String, Map<String, List<Map<String, dynamic>>>> offresParSoin = {
+    'MGEN': {
+      'Soins dentaires': [
+        {
+          'title': 'Détartrage gratuit',
+          'description': 'Une séance annuelle gratuite pour les adhérents.',
+          'eligibility': {'minAge': 18, 'maxAge': 60},
+        },
+        {
+          'title': 'Couronne remboursée à 100%',
+          'description': 'Remboursement complet pour les seniors de 65 ans et +.',
+          'eligibility': {'minAge': 65},
+        },
+      ],
+      'Optique (lunettes, lentilles)': [
+        {
+          'title': 'Pack étudiant - 2e paire offerte',
+          'description': 'Offre spéciale pour les étudiants de moins de 26 ans.',
+          'eligibility': {'isEtudiant': true, 'maxAge': 26},
+        },
+        {
+          'title': 'Monture gratuite en réseau partenaire',
+          'description': 'Disponible pour les plans Premium dans toute la France.',
+          'eligibility': {'plan': 'Premium'},
+        },
+      ],
+    },
+    'Alan': {
+      'Consultation généraliste': [
+        {
+          'title': 'Téléconsultation gratuite 24h/24',
+          'description': 'Disponible pour tous les adhérents, sans condition.',
+          'eligibility': {},
+        },
+      ],
+      'Hospitalisation': [
+        {
+          'title': 'Chambre individuelle offerte',
+          'description': 'Réservée aux adhérents Premium âgés de plus de 30 ans.',
+          'eligibility': {'plan': 'Premium', 'minAge': 30},
+        },
+      ],
+    },
+    'Axa': {
+      'Soins dentaires': [
+        {
+          'title': 'Implant remboursé à 80%',
+          'description': 'Offre pour les assurés Premium de plus de 40 ans.',
+          'eligibility': {'plan': 'Premium', 'minAge': 40},
+        },
+        {
+          'title': 'Consultation dentaire enfant gratuite',
+          'description': 'Valable pour les moins de 18 ans dans le département 75.',
+          'eligibility': {'maxAge': 18, 'departement': '75'},
+        },
+      ],
+    },
+    'Mutualia': {
+      'Optique (lunettes, lentilles)': [
+        {
+          'title': 'Remise régionale',
+          'description':
+          '10 % de réduction sur les verres pour les assurés d’Île-de-France.',
+          'eligibility': {'departement': '75'},
+        },
+      ],
+    },
+  };
 
   @override
   void initState() {
     super.initState();
-    chargerSoins();
+    _controller =
+        AnimationController(
+            vsync: this, duration: const Duration(milliseconds: 700));
   }
 
-  void chargerSoins() async {
-    var listeSoins = await service.getSoins();
-    setState(() {
-      soins = listeSoins;
-      chargement = false;
-    });
-  }
-
-  void calculer() async {
-    if (soinSelectionne == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez sélectionner un soin.')),
-      );
-      return;
-    }
-
-    if (prixController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez entrer un prix.')),
-      );
-      return;
-    }
-
-    double? prix = double.tryParse(prixController.text);
-    if (prix == null || prix <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Le prix saisi est invalide.')),
-      );
-      return;
-    }
-
-    final userId = supabase.auth.currentUser?.id;
-    if (userId == null) {
+  void calculerSimulation() {
+    if (selectedSoin == null || mutuelleName == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Utilisateur non connecté. Veuillez vous reconnecter.'),
-          backgroundColor: Colors.red,
+          content: Text("Veuillez choisir un soin et une mutuelle."),
+          backgroundColor: Colors.redAccent,
         ),
       );
       return;
     }
 
-    setState(() => calcul = true);
+    double base = 100.0;
+    double taux = (tauxBRSS[mutuelleName!] ?? 100) / 100;
+    double rem = base * taux;
 
-    RemboursementResult result = await service.calculerRemboursement(
-      userId: userId,
-      soinId: soinSelectionne!,
-      prixReel: prix,
-    );
+    if (planName != null && planName!.toLowerCase().contains('premium'))
+      rem *= 1.1;
+    if (estEtudiant == 'Oui') rem += 5;
+    if ((age ?? 0) > 65) rem += 10;
 
     setState(() {
-      resultat = result;
-      calcul = false;
+      estimation = rem;
     });
 
-    if (!result.success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.error ?? 'Une erreur de calcul est survenue'),
-          duration: const Duration(seconds: 5),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
+    _controller.forward(from: 0);
+  }
+
+  bool estEligible(Map<String, dynamic> criteria) {
+    if (criteria.isEmpty) return true;
+    if (criteria['isEtudiant'] == true && estEtudiant != 'Oui') return false;
+    if (criteria['plan'] != null &&
+        planName != null &&
+        planName != criteria['plan']) return false;
+    if (criteria['departement'] != null &&
+        departement != criteria['departement']) return false;
+    if (criteria['minAge'] != null && (age ?? 0) < criteria['minAge'])
+      return false;
+    if (criteria['maxAge'] != null && (age ?? 200) > criteria['maxAge'])
+      return false;
+    return true;
   }
 
   @override
   Widget build(BuildContext context) {
-    if (chargement) {
-      return Scaffold(
-        backgroundColor: const Color(0xFFF7F8FA),
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
+    final bool isDark = _isDarkMode;
+    final Color cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final Color textColor = isDark ? Colors.white : Colors.black87;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
+      backgroundColor: isDark ? const Color(0xFF121212) : const Color(
+          0xFFF6F8FB),
       appBar: AppBar(
-        backgroundColor: Colors.white,
         elevation: 0,
+        backgroundColor: cardColor,
         centerTitle: true,
         title: Text(
-          "Simulation",
-          style: GoogleFonts.poppins(
-            color: Colors.black87,
-            fontWeight: FontWeight.w600,
-            fontSize: 20,
+          "Simulation de droits santé",
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: textColor,
           ),
         ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Récapitulatif de la simulation",
-                style: GoogleFonts.poppins(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 25),
-
-              _buildCard(
-                icon: Icons.person,
-                title: "Votre situation civile",
-                subtitle: "Homme / Femme\nÂge & Mutuelle Santé",
-              ),
-
-              _buildSoinCard(),
-
-              _buildPrixCard(),
-
-              const SizedBox(height: 40),
-
-              Center(
-                child: ElevatedButton(
-                  onPressed: calcul ? null : calculer,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 50,
-                      vertical: 14,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    elevation: 3,
-                  ),
-                  child: calcul
-                      ? SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
-                    ),
-                  )
-                      : Text(
-                    "CALCULER",
-                    style: GoogleFonts.poppins(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-              ),
-
-              if (resultat != null && resultat!.success) ...[
-                const SizedBox(height: 30),
-                _buildResultCard(resultat!.details!),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCard({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    Color iconColor = Colors.deepPurpleAccent,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.12),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: iconColor.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icon, color: iconColor, size: 28),
-        ),
-        title: Text(
-          title,
-          style: GoogleFonts.poppins(
-            color: Colors.grey[700],
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        subtitle: Text(
-          subtitle,
-          style: GoogleFonts.poppins(
-            color: Colors.black87,
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            height: 1.4,
-          ),
-        ),
-        trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-      ),
-    );
-  }
-
-  Widget _buildSoinCard() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.12),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.pinkAccent.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(Icons.favorite_rounded,
-                      color: Colors.pinkAccent, size: 28),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  "Soin souhaité",
-                  style: GoogleFonts.poppins(
-                    color: Colors.grey[700],
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<int>(
-              value: soinSelectionne,
-              hint: Text('Sélectionnez un soin'),
-              isExpanded: true,
-              decoration: InputDecoration(
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              items: soins.map((soin) {
-                return DropdownMenuItem<int>(
-                  value: soin['id'],
-                  child: Text(
-                    soin['name'],
-                    style: GoogleFonts.poppins(fontSize: 13),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                );
-              }).toList(),
-              onChanged: (value) {
-                setState(() => soinSelectionne = value);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPrixCard() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.12),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.indigoAccent.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(Icons.euro_rounded,
-                      color: Colors.indigoAccent, size: 28),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  "Prix (€)",
-                  style: GoogleFonts.poppins(
-                    color: Colors.grey[700],
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: prixController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                hintText: 'Ex: 30.00',
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildResultCard(RemboursementDetails details) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.green, width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.green.withOpacity(0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+        actions: [
+          // 🔹 Switch pour changer manuellement le mode
           Row(
             children: [
-              Icon(Icons.check_circle, color: Colors.green, size: 28),
-              const SizedBox(width: 12),
-              Text(
-                "Résultat de la simulation",
-                style: GoogleFonts.poppins(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+              Icon(isDark ? Icons.dark_mode : Icons.light_mode,
+                  color: isDark ? Colors.tealAccent[400] : Colors.blueAccent),
+              Switch(
+                value: _isDarkMode,
+                activeColor: Colors.tealAccent[400],
+                inactiveThumbColor: Colors.blueAccent,
+                onChanged: (value) {
+                  setState(() => _isDarkMode = value);
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+      body: AnimatedContainer(
+        duration: const Duration(milliseconds: 400),
+        padding: const EdgeInsets.all(18),
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              _buildSectionCard(
+                icon: Icons.healing_outlined,
+                title: "1. Choisissez un soin",
+                child: DropdownButtonFormField<String>(
+                  dropdownColor: cardColor,
+                  style: TextStyle(color: textColor),
+                  decoration: _inputDecoration(isDark, hint: "Type de soin"),
+                  value: selectedSoin,
+                  items: soins.map((s) =>
+                      DropdownMenuItem(value: s, child: Text(s))).toList(),
+                  onChanged: (val) => setState(() => selectedSoin = val),
+                ),
+              ),
+              if (selectedSoin != null)
+                _buildSectionCard(
+                  icon: Icons.local_hospital_outlined,
+                  title: "2. Sélectionnez votre mutuelle",
+                  child: Column(
+                    children: [
+                      DropdownButtonFormField<String>(
+                        dropdownColor: cardColor,
+                        style: TextStyle(color: textColor),
+                        decoration: _inputDecoration(isDark, hint: "Mutuelle"),
+                        value: mutuelleName,
+                        items: mutuelles
+                            .map((m) =>
+                            DropdownMenuItem(value: m, child: Text(m)))
+                            .toList(),
+                        onChanged: (val) => setState(() => mutuelleName = val),
+                      ),
+                      const SizedBox(height: 18),
+                      if (mutuelleName != null) _buildTauxBRSSBar(
+                          mutuelleName!, isDark),
+                      const SizedBox(height: 18),
+                      if (mutuelleName != null)
+                        _buildFilteredOffers(
+                            mutuelleName!, selectedSoin!, isDark),
+                    ],
+                  ),
+                ),
+              _buildSectionCard(
+                icon: Icons.person_outline,
+                title: "3. Informations personnelles",
+                child: _buildInputCard(isDark),
+              ),
+              _buildSectionCard(
+                icon: Icons.euro_symbol,
+                title: "4. Résultat de simulation",
+                child: _buildResultCard(isDark),
+              ),
+              const SizedBox(height: 15),
+              ElevatedButton.icon(
+                onPressed: calculerSimulation,
+                icon: const Icon(Icons.calculate_rounded),
+                label: const Text("Lancer la simulation"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isDark ? Colors.tealAccent[400] : Colors
+                      .blueAccent,
+                  foregroundColor: isDark ? Colors.black : Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 40, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
                 ),
               ),
             ],
           ),
-          Divider(height: 24),
-
-          _ligne('Soin', details.soinName, gras: true),
-          _ligne('Prix payé', '${details.prixReel.toStringAsFixed(2)} €'),
-          _ligne('Base remb.', '${details.baseRemboursement.toStringAsFixed(2)} €'),
-
-          const SizedBox(height: 16),
-          Text(
-            'Sécurité sociale',
-            style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14),
-          ),
-          const SizedBox(height: 8),
-          _ligne('Taux', '${details.tauxSecu.toStringAsFixed(0)} %', indent: true),
-          _ligne('Remb. brut', '${details.rembSecuBrut.toStringAsFixed(2)} €', indent: true),
-          if (details.participationForfaitaire > 0)
-            _ligne('Part. forfaitaire', '-${details.participationForfaitaire.toStringAsFixed(2)} €',
-                indent: true, couleur: Colors.orange),
-          _ligne('Remb. net', '${details.rembSecuNet.toStringAsFixed(2)} €',
-              indent: true, gras: true),
-
-          const SizedBox(height: 16),
-          Text(
-            'Mutuelle',
-            style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14),
-          ),
-          const SizedBox(height: 8),
-          _ligne('Taux', '${details.tauxMutuelle.toStringAsFixed(0)} %', indent: true),
-          _ligne('Remboursement', '${details.rembMutuelle.toStringAsFixed(2)} €',
-              indent: true, gras: true),
-
-          Divider(height: 24),
-
-          _ligne('TOTAL REMBOURSÉ', '${details.totalRembourse.toStringAsFixed(2)} €',
-              gras: true, couleur: Colors.green, taille: 16),
-          _ligne('RESTE À CHARGE', '${details.resteACharge.toStringAsFixed(2)} €',
-              gras: true, couleur: Colors.red, taille: 18),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _ligne(String label, String valeur, {
-    bool indent = false,
-    bool gras = false,
-    Color? couleur,
-    double? taille,
+  // ---------- SOUS-COMPOSANTS VISUELS ----------
+
+  Widget _buildSectionCard({
+    required IconData icon,
+    required String title,
+    required Widget child,
   }) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 8, left: indent ? 16 : 0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: GoogleFonts.poppins(
-                fontSize: taille ?? 13,
-                fontWeight: gras ? FontWeight.bold : FontWeight.normal,
-                color: couleur ?? Colors.grey[700],
+    final bool isDark = _isDarkMode;
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          if (!isDark)
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+        ],
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(
+          children: [
+            Icon(icon,
+                color: isDark ? Colors.tealAccent[400] : Colors.blueAccent,
+                size: 24),
+            const SizedBox(width: 8),
+            Text(title,
+                style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white : Colors.black87)),
+          ],
+        ),
+        const SizedBox(height: 15),
+        child,
+      ]),
+    );
+  }
+
+  Widget _buildTauxBRSSBar(String mutuelle, bool isDark) {
+    int taux = tauxBRSS[mutuelle] ?? 100;
+    double normalized = taux / 300;
+    Color barColor = taux >= 250
+        ? Colors.greenAccent
+        : taux >= 150
+        ? Colors.lightBlueAccent
+        : Colors.orangeAccent;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text("Taux de remboursement BRSS : $taux%",
+            style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white : Colors.black)),
+        const SizedBox(height: 8),
+        LinearPercentIndicator(
+          lineHeight: 14,
+          percent: normalized.clamp(0.0, 1.0),
+          backgroundColor: isDark ? Colors.grey[800] : Colors.grey[200],
+          progressColor: barColor,
+          animation: true,
+          barRadius: const Radius.circular(12),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFilteredOffers(String mutuelle, String soin, bool isDark) {
+    final offres = offresParSoin[mutuelle]?[soin] ?? [];
+    if (offres.isEmpty) {
+      return Text("Aucune offre spéciale pour ce soin.",
+          style: TextStyle(color: isDark ? Colors.white70 : Colors.black54));
+    }
+    return Column(
+      children: offres.map((offer) {
+        bool eligible = estEligible(offer['eligibility']);
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          margin: const EdgeInsets.symmetric(vertical: 6),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: eligible
+                ? (isDark ? Colors.teal.withOpacity(0.2) : Colors.green[50])
+                : (isDark ? Colors.grey[850] : Colors.grey[100]),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                eligible ? Icons.check_circle : Icons.info_outline,
+                color: eligible
+                    ? (isDark ? Colors.tealAccent : Colors.green)
+                    : Colors.grey,
+                size: 24,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(offer['title'],
+                          style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color:
+                              isDark ? Colors.white : Colors.black87)),
+                      const SizedBox(height: 4),
+                      Text(offer['description'],
+                          style: TextStyle(
+                              fontSize: 14,
+                              color: isDark
+                                  ? Colors.white70
+                                  : Colors.black54)),
+                      if (eligible)
+                        Text("✅ Éligible à cette offre",
+                            style: TextStyle(
+                                color: isDark
+                                    ? Colors.tealAccent
+                                    : Colors.green,
+                                fontWeight: FontWeight.w500)),
+                    ]),
+              )
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildInputCard(bool isDark) {
+    return Column(children: [
+      DropdownButtonFormField<String>(
+        dropdownColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        value: planName,
+        hint: const Text("Plan"),
+        style: TextStyle(color: isDark ? Colors.white : Colors.black),
+        decoration: _inputDecoration(isDark),
+        items: plans
+            .map((p) => DropdownMenuItem(value: p, child: Text(p)))
+            .toList(),
+        onChanged: (val) => setState(() => planName = val),
+      ),
+      const SizedBox(height: 15),
+      DropdownButtonFormField<String>(
+        dropdownColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        value: estEtudiant,
+        hint: const Text("Étudiant ?"),
+        style: TextStyle(color: isDark ? Colors.white : Colors.black),
+        decoration: _inputDecoration(isDark),
+        items: ['Oui', 'Non']
+            .map((v) => DropdownMenuItem(value: v, child: Text(v)))
+            .toList(),
+        onChanged: (val) => setState(() => estEtudiant = val),
+      ),
+      const SizedBox(height: 15),
+      TextFormField(
+        decoration: _inputDecoration(isDark, label: "Âge"),
+        keyboardType: TextInputType.number,
+        onChanged: (val) => age = int.tryParse(val),
+        style: TextStyle(color: isDark ? Colors.white : Colors.black),
+      ),
+      const SizedBox(height: 15),
+      TextFormField(
+        decoration: _inputDecoration(isDark, label: "Département"),
+        onChanged: (val) => departement = val,
+        style: TextStyle(color: isDark ? Colors.white : Colors.black),
+      ),
+    ]);
+  }
+
+  Widget _buildResultCard(bool isDark) {
+    return FadeTransition(
+      opacity: _controller.drive(CurveTween(curve: Curves.easeInOut)),
+      child: Container(
+        padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: isDark
+                ? [
+              Colors.tealAccent.withOpacity(0.5),
+              Colors.cyanAccent.withOpacity(0.4)
+            ]
+                : [const Color(0xFF8FD3F4), const Color(0xFF84FAB0)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.euro, color: Colors.white, size: 30),
+            const SizedBox(width: 16),
+            Text(
+              estimation == 0 ? "—" : "${estimation.toStringAsFixed(2)} €",
+              style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
               ),
             ),
-          ),
-          Text(
-            valeur,
-            style: GoogleFonts.poppins(
-              fontSize: taille ?? 13,
-              fontWeight: gras ? FontWeight.bold : FontWeight.w600,
-              color: couleur ?? Colors.black87,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  @override
-  void dispose() {
-    prixController.dispose();
-    super.dispose();
+  InputDecoration _inputDecoration(bool isDark, {String? label, String? hint}) {
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      filled: true,
+      fillColor: isDark ? const Color(0xFF2C2C2C) : Colors.grey.shade50,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
+      labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+    );
   }
 }
