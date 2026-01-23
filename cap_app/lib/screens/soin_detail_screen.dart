@@ -37,6 +37,7 @@ class RemboursementInfo {
 /// Résultat d'un calcul de remboursement
 class RemboursementResult {
   final double remboursementSecu;
+  final double totalAutoriseMutuelle;
   final double remboursementMutuelle;
   final double participationForfaitaire;
   final double totalRembourse;
@@ -46,6 +47,7 @@ class RemboursementResult {
 
   RemboursementResult({
     required this.remboursementSecu,
+    required this.totalAutoriseMutuelle,
     required this.remboursementMutuelle,
     required this.participationForfaitaire,
     required this.totalRembourse,
@@ -68,7 +70,17 @@ class RemboursementCalculator {
   static RemboursementResult calculer(RemboursementInfo info) {
     // 1. Déterminer si le praticien est conventionné
     final bool estConventionne = info.prixFacture <= info.brss;
-    final double montantDepassement = estConventionne ? 0 : info.prixFacture - info.brss;
+    final double montantDepassement = info.prixFacture > info.brss ? info.prixFacture - info.brss : 0;
+
+    double totalAutoriseMutuelle = 0;
+
+    if (info.typeMutuelle == 'pourcentage') {
+      final double taux = estConventionne
+          ? (info.tauxMutuelleConventionne ?? 0)
+          : (info.tauxMutuelleNonConventionne ?? 0);
+
+      totalAutoriseMutuelle = info.brss * (taux / 100);
+    }
 
     // 2. Calculer le remboursement Sécurité sociale
     double remboursementSecu = info.brss * (info.tauxSecu / 100);
@@ -81,10 +93,22 @@ class RemboursementCalculator {
     if (remboursementSecu < 0) remboursementSecu = 0;
 
     // 5. Calculer le remboursement Mutuelle selon le type
-    final double remboursementMutuelle = _calculerRemboursementMutuelle(
+    double remboursementMutuelle = _calculerRemboursementMutuelle(
       info: info,
       estConventionne: estConventionne,
     );
+
+    // Cas mutuelle en pourcentage : le taux représente le TOTAL autorisé
+    if (info.typeMutuelle == 'pourcentage') {
+      remboursementMutuelle = remboursementMutuelle - remboursementSecu;
+      if (remboursementMutuelle < 0) remboursementMutuelle = 0;
+    }
+
+    final double maxRemboursable = info.prixFacture - remboursementSecu;
+
+    if (remboursementMutuelle > maxRemboursable) {
+      remboursementMutuelle = maxRemboursable < 0 ? 0 : maxRemboursable;
+    }
 
     // 6. Calculer le total remboursé et le reste à charge
     final double totalRembourse = remboursementSecu + remboursementMutuelle;
@@ -93,6 +117,7 @@ class RemboursementCalculator {
 
     return RemboursementResult(
       remboursementSecu: remboursementSecu,
+      totalAutoriseMutuelle: totalAutoriseMutuelle,
       remboursementMutuelle: remboursementMutuelle,
       participationForfaitaire: participationForfaitaire,
       totalRembourse: totalRembourse,
@@ -504,7 +529,7 @@ class _SoinDetailScreenState extends State<SoinDetailScreen> {
           TextField(
             controller: _prixController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
+            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
             onChanged: _onPrixChanged,
             style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: Color(0xFF1A1A1A)),
             decoration: InputDecoration(
@@ -618,6 +643,7 @@ class _SoinDetailScreenState extends State<SoinDetailScreen> {
           const SizedBox(height: 24),
           _buildResultRow('Prix facturé', '${_prixFacture.toStringAsFixed(2)}€', false),
           const SizedBox(height: 16),
+          const Divider(color: Colors.white24, thickness: 2),
           _buildResultRow('Sécurité sociale (${_tauxSecu.toStringAsFixed(0)}%)', '${_result!.remboursementSecu.toStringAsFixed(2)}€', false),
           if (_result!.participationForfaitaire > 0) ...[
             const SizedBox(height: 8),
@@ -634,9 +660,22 @@ class _SoinDetailScreenState extends State<SoinDetailScreen> {
           ],
           const SizedBox(height: 16),
           _buildResultRow(_getLabelMutuelle(), '${_result!.remboursementMutuelle.toStringAsFixed(2)}€', false),
+          const Divider(color: Colors.white24, thickness: 2),
           const SizedBox(height: 20),
-          const Divider(color: Colors.white24, thickness: 1),
-          const SizedBox(height: 20),
+          _buildResultRow('Total Remboursable', '${_result!.totalAutoriseMutuelle.toStringAsFixed(2)}€', false,),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.only(left: 16),
+            child: Text(
+              'Calculé sur la BRSS (${_brss.toStringAsFixed(2)}€ × ${_getTauxMutuelle().toStringAsFixed(0)}%)',
+              style: const TextStyle(
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+                color: Colors.white70,
+              ),
+            ),
+          ),
+          const SizedBox(height: 40),
           _buildResultRow('TOTAL REMBOURSÉ', '${_result!.totalRembourse.toStringAsFixed(2)}€', true),
           const SizedBox(height: 20),
           Container(
@@ -743,7 +782,7 @@ class _SoinDetailScreenState extends State<SoinDetailScreen> {
                       const Text('Avec :', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF6B7280))),
                       const SizedBox(height: 4),
                       Text(
-                        '• Remboursement Sécu = (BRSS × Taux Sécu / 100)${_isMajeur ? ' - 1€' : ''}\n• Remboursement Mutuelle = BRSS × (Taux Mutuelle / 100)',
+                        '• Remboursement Sécu = (BRSS × Taux Sécu / 100)${_isMajeur ? ' - 1€' : ''}\n• Remboursement Mutuelle = (BRSS × Taux Mutuelle / 100) − Remboursement Sécu',
                         style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280), height: 1.6),
                       ),
                     ],
@@ -779,7 +818,19 @@ class _SoinDetailScreenState extends State<SoinDetailScreen> {
                       ),
                       const SizedBox(height: 12),
                       const Text(
-                        'Consultation spécialiste à 60€ (majeur)\n• BRSS : 31,50€\n• Taux Sécu : 70%\n• Taux Mutuelle : 110% (non conventionné)\n\nCalcul :\n• Sécu brut : 31,50€ × 70% = 22,05€\n• Participation : -1€\n• Sécu net : 21,05€\n• Mutuelle : 31,50€ × 110% = 34,65€\n• Total remboursé : 55,70€\n• Reste à charge : 60€ - 55,70€ = 4,30€',
+                        'Consultation spécialiste à 60€ (majeur)\n'
+                            '• BRSS : 31,50€\n'
+                            '• Taux Sécu : 70%\n'
+                            '• Taux Mutuelle : 110%\n\n'
+                            'Calcul :\n'
+                            '• Sécu brut : 31,50€ × 70% = 22,05€\n'
+                            '• Participation : -1€\n'
+                            '• Sécu net : 21,05€\n\n'
+                            '• Total autorisé (mutuelle 110%) : 34,65€\n'
+                            '• Mutuelle : 34,65€ − 21,05€ = 13,60€\n\n'
+                            '• Total remboursé : 34,65€\n'
+                            '• Reste à charge : 60€ − 34,65€ = 25,35€'
+                        ,
                         style: TextStyle(fontSize: 12, color: Color(0xFF4F46E5), height: 1.6),
                       ),
                     ],
@@ -857,4 +908,14 @@ class _SoinDetailScreenState extends State<SoinDetailScreen> {
       tauxNonConventionne: (_remboursementMutuelle!['taux_mutuelle_non_conventionne'] as num?)?.toDouble(),
     );
   }
-}//
+
+  double _getTauxMutuelle() {
+    if (_result == null || _remboursementMutuelle == null) return 0;
+
+    final bool estConventionne = _result!.estConventionne;
+
+    return estConventionne
+        ? ((_remboursementMutuelle!['taux_mutuelle_conventionne'] as num?)?.toDouble() ?? 0)
+        : ((_remboursementMutuelle!['taux_mutuelle_non_conventionne'] as num?)?.toDouble() ?? 0);
+  }
+}
