@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../services/simulation_history_service.dart';
 
 // ============================================
 // MODELS
@@ -209,6 +210,8 @@ class _SoinDetailScreenState extends State<SoinDetailScreen> {
   double _brss = 0;
   double _tauxSecu = 0;
   bool _isMajeur = false;
+  String? _categorieName;
+  bool _userHasSimulated = false;
 
   RemboursementResult? _result;
 
@@ -220,8 +223,31 @@ class _SoinDetailScreenState extends State<SoinDetailScreen> {
 
   @override
   void dispose() {
+    _saveToHistory();
     _prixController.dispose();
     super.dispose();
+  }
+
+  void _saveToHistory() {
+    if (_result == null || !_profilComplet || _soinData == null || !_userHasSimulated) return;
+
+    SimulationHistoryService().saveSimulation(
+      soinId: widget.soinId,
+      soinName: _soinData!['name'] ?? 'Soin',
+      soinIcon: _soinData!['icon'],
+      categorieName: _categorieName,
+      prixFacture: _prixFacture,
+      brss: _brss,
+      tauxSecu: _tauxSecu,
+      remboursementSecu: _result!.remboursementSecu,
+      remboursementMutuelle: _result!.remboursementMutuelle,
+      participationForfaitaire: _result!.participationForfaitaire,
+      totalAutoriseMutuelle: _result!.totalAutoriseMutuelle,
+      totalRembourse: _result!.totalRembourse,
+      resteACharge: _result!.resteACharge,
+      montantDepassement: _result!.montantDepassement,
+      estConventionne: _result!.estConventionne,
+    );
   }
 
   Future<void> _checkProfilAndLoadData() async {
@@ -264,7 +290,7 @@ class _SoinDetailScreenState extends State<SoinDetailScreen> {
         _isMajeur = age >= 18;
       }
 
-      final soinResponse = await _supabase.from('soins').select('*').eq('id', widget.soinId).single();
+      final soinResponse = await _supabase.from('soins').select('*, categories_soins(name)').eq('id', widget.soinId).single();
       final secuResponse = await _supabase.from('assurance_maladie_remboursements').select('*').eq('soins_id', widget.soinId).eq('regimes_id', regimeId).maybeSingle();
       final mutuelleResponse = await _supabase.from('mutuelle_remboursements').select('*').eq('soins_id', widget.soinId).eq('formule_id', formuleId).maybeSingle();
 
@@ -274,6 +300,12 @@ class _SoinDetailScreenState extends State<SoinDetailScreen> {
 
       if (mutuelleResponse == null) {
         throw Exception('Remboursement Mutuelle introuvable\n\nSoin ID: ${widget.soinId}\nFormule ID: $formuleId');
+      }
+
+      // Extract category name from joined data
+      final categoriesData = soinResponse['categories_soins'];
+      if (categoriesData != null && categoriesData is Map) {
+        _categorieName = categoriesData['name'] as String?;
       }
 
       setState(() {
@@ -322,6 +354,7 @@ class _SoinDetailScreenState extends State<SoinDetailScreen> {
     if (newPrix != null && newPrix >= 0) {
       setState(() {
         _prixFacture = newPrix;
+        _userHasSimulated = true;
       });
       _calculerRemboursements();
     }

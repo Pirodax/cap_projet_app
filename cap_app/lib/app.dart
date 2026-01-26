@@ -56,7 +56,7 @@ class _MainPageState extends State<MainPage> {
   Widget build(BuildContext context) {
     final List<Widget> pages = [
       const HomeScreen(),
-      const HistoriquePage(),
+      HistoriquePage(isActive: _selectedIndex == 1),
       const ProfileScreen(), // ✅ on ne passe plus de paramètres ici
     ];
 
