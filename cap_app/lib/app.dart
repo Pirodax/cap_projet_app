@@ -5,7 +5,7 @@ import 'features/auth/screens/sign_up_screen.dart' as auth;
 import 'screens/home_screen.dart';
 import 'screens/profile_screen.dart';
 import 'widgets/bottom_navbar.dart';
-import 'screens/historique_screen.dart';
+import 'features/History/historique_page.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -49,12 +49,6 @@ class MainPage extends StatefulWidget {
 class _MainPageState extends State<MainPage> {
   int _selectedIndex = 0;
 
-  final List<Widget> _pages = const [
-    HomeScreen(),
-    HistoriqueScreen(),
-    ProfileScreen(),
-  ];
-
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -63,10 +57,16 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
+    final List<Widget> pages = [
+      const HomeScreen(),
+      HistoriquePage(isActive: _selectedIndex == 1),
+      const ProfileScreen(),
+    ];
+
     return Scaffold(
       body: IndexedStack(
         index: _selectedIndex,
-        children: _pages,
+        children: pages,
       ),
       bottomNavigationBar: BottomNavBar(
         selectedIndex: _selectedIndex,

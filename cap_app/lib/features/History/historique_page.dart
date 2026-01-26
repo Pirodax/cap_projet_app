@@ -1,32 +1,42 @@
-// lib/historique_page.dart
-
 import 'package:flutter/material.dart';
+import '../../models/simulation_history.dart';
+import '../../services/simulation_history_service.dart';
 
-// Modèle de données pour une simulation
-class Simulation {
-  final String id;
-  final String titre;
-  final String categorie;
-  final double montant;
-  final double economieEstimee;
-  final DateTime date;
-  final IconData icon;
-  final Color color;
-
-  Simulation({
-    required this.id,
-    required this.titre,
-    required this.categorie,
-    required this.montant,
-    required this.economieEstimee,
-    required this.date,
-    required this.icon,
-    required this.color,
-  });
+// Map category name to a color for display
+Color _colorForCategory(String? categorieName) {
+  switch (categorieName?.toLowerCase()) {
+    case 'consultations et visites':
+    case 'généraliste':
+      return Colors.green;
+    case 'spécialistes':
+    case 'spécialiste':
+      return Colors.blue;
+    case 'imagerie médicale':
+    case 'imagerie':
+      return Colors.purple;
+    case 'analyses et biologie':
+    case 'laboratoire':
+      return Colors.orange;
+    case 'dentaire':
+    case 'soins dentaires':
+      return Colors.teal;
+    case 'optique':
+      return Colors.cyan;
+    case 'hospitalisation':
+      return Colors.red;
+    case 'pharmacie':
+      return Colors.indigo;
+    case 'audioprothèses':
+      return Colors.pink;
+    default:
+      return Colors.blueGrey;
+  }
 }
 
 class HistoriquePage extends StatefulWidget {
-  const HistoriquePage({super.key});
+  final bool isActive;
+
+  const HistoriquePage({super.key, this.isActive = false});
 
   @override
   State<HistoriquePage> createState() => _HistoriquePageState();
@@ -34,25 +44,27 @@ class HistoriquePage extends StatefulWidget {
 
 class _HistoriquePageState extends State<HistoriquePage>
     with TickerProviderStateMixin {
+  final SimulationHistoryService _historyService = SimulationHistoryService();
+
   late AnimationController _animationController;
   late AnimationController _skeletonController;
-  late Animation<double> _animation;
   String _searchQuery = '';
   String _selectedCategory = 'Tous';
   String _selectedPeriod = 'Tout';
   String _sortBy = 'date_desc';
   bool _isLoading = true;
 
-  final List<String> _categories = [
-    'Tous',
-    'Spécialiste',
-    'Généraliste',
-    'Imagerie',
-    'Laboratoire',
-    'Dentaire',
-  ];
+  List<SimulationHistory> _simulations = [];
 
-  List<Simulation> _simulations = [];
+  // Dynamic categories built from loaded data
+  List<String> get _categories {
+    final cats = _simulations
+        .map((s) => s.categorieName ?? 'Autre')
+        .toSet()
+        .toList()
+      ..sort();
+    return ['Tous', ...cats];
+  }
 
   @override
   void initState() {
@@ -61,9 +73,6 @@ class _HistoriquePageState extends State<HistoriquePage>
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
-    );
-    _animation = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
     );
 
     _skeletonController = AnimationController(
@@ -74,98 +83,34 @@ class _HistoriquePageState extends State<HistoriquePage>
     _loadData();
   }
 
+  @override
+  void didUpdateWidget(covariant HistoriquePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) {
+      _loadData();
+    }
+  }
+
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
 
-    await Future.delayed(const Duration(milliseconds: 800));
+    try {
+      final simulations = await _historyService.getSimulations();
+      setState(() {
+        _simulations = simulations;
+        _isLoading = false;
+      });
+      _animationController.forward(from: 0);
+    } catch (e) {
+      setState(() => _isLoading = false);
+    }
+  }
 
+  Future<void> _deleteSimulation(SimulationHistory simulation) async {
+    await _historyService.deleteSimulation(simulation.id);
     setState(() {
-      _simulations = [
-        Simulation(
-          id: '1',
-          titre: 'Consultation ORL',
-          categorie: 'Spécialiste',
-          montant: 50.00,
-          economieEstimee: 35.00,
-          date: DateTime.now().subtract(const Duration(days: 2)),
-          icon: Icons.local_hospital,
-          color: Colors.blue,
-        ),
-        Simulation(
-          id: '2',
-          titre: 'Médecin généraliste',
-          categorie: 'Généraliste',
-          montant: 25.00,
-          economieEstimee: 17.50,
-          date: DateTime.now().subtract(const Duration(days: 5)),
-          icon: Icons.medical_services,
-          color: Colors.green,
-        ),
-        Simulation(
-          id: '3',
-          titre: 'Radiographie thorax',
-          categorie: 'Imagerie',
-          montant: 80.00,
-          economieEstimee: 56.00,
-          date: DateTime.now().subtract(const Duration(days: 10)),
-          icon: Icons.camera_alt,
-          color: Colors.purple,
-        ),
-        Simulation(
-          id: '4',
-          titre: 'Analyse sanguine',
-          categorie: 'Laboratoire',
-          montant: 35.00,
-          economieEstimee: 24.50,
-          date: DateTime.now().subtract(const Duration(days: 15)),
-          icon: Icons.biotech,
-          color: Colors.orange,
-        ),
-        Simulation(
-          id: '5',
-          titre: 'Consultation dentiste',
-          categorie: 'Dentaire',
-          montant: 70.00,
-          economieEstimee: 21.00,
-          date: DateTime.now().subtract(const Duration(days: 20)),
-          icon: Icons.health_and_safety,
-          color: Colors.teal,
-        ),
-        Simulation(
-          id: '6',
-          titre: 'IRM cérébrale',
-          categorie: 'Imagerie',
-          montant: 150.00,
-          economieEstimee: 105.00,
-          date: DateTime.now().subtract(const Duration(days: 30)),
-          icon: Icons.memory,
-          color: Colors.indigo,
-        ),
-        Simulation(
-          id: '7',
-          titre: 'Ophtalmologue',
-          categorie: 'Spécialiste',
-          montant: 45.00,
-          economieEstimee: 31.50,
-          date: DateTime.now().subtract(const Duration(days: 45)),
-          icon: Icons.visibility,
-          color: Colors.cyan,
-        ),
-        Simulation(
-          id: '8',
-          titre: 'Kinésithérapeute',
-          categorie: 'Spécialiste',
-          montant: 30.00,
-          economieEstimee: 18.00,
-          date: DateTime.now().subtract(const Duration(days: 60)),
-          icon: Icons.accessibility_new,
-          color: Colors.pink,
-        ),
-      ];
-      _isLoading = false;
+      _simulations.removeWhere((s) => s.id == simulation.id);
     });
-
-    _animationController.forward();
   }
 
   @override
@@ -175,65 +120,58 @@ class _HistoriquePageState extends State<HistoriquePage>
     super.dispose();
   }
 
-  double get _totalEconomie {
+  double get _totalRembourse {
     final filtered = _getFilteredAndSortedSimulations();
-    return filtered.fold(0.0, (sum, item) => sum + item.economieEstimee);
+    return filtered.fold(0.0, (sum, item) => sum + item.totalRembourse);
   }
 
-  double get _totalMontant {
-    final filtered = _getFilteredAndSortedSimulations();
-    return filtered.fold(0.0, (sum, item) => sum + item.montant);
-  }
-
-  double get _tauxEconomie {
-    if (_totalMontant == 0) return 0;
-    return (_totalEconomie / _totalMontant) * 100;
-  }
-
-  // Calculer les totaux par catégorie
+  // Category totals for the modal
   Map<String, Map<String, double>> get _categoryTotals {
     final Map<String, Map<String, double>> totals = {};
 
     for (var sim in _getFilteredAndSortedSimulations()) {
-      if (!totals.containsKey(sim.categorie)) {
-        totals[sim.categorie] = {
+      final cat = sim.categorieName ?? 'Autre';
+      if (!totals.containsKey(cat)) {
+        totals[cat] = {
           'montant': 0.0,
-          'economie': 0.0,
+          'rembourse': 0.0,
           'count': 0.0,
         };
       }
-      totals[sim.categorie]!['montant'] =
-          (totals[sim.categorie]!['montant'] ?? 0) + sim.montant;
-      totals[sim.categorie]!['economie'] =
-          (totals[sim.categorie]!['economie'] ?? 0) + sim.economieEstimee;
-      totals[sim.categorie]!['count'] =
-          (totals[sim.categorie]!['count'] ?? 0) + 1;
+      totals[cat]!['montant'] =
+          (totals[cat]!['montant'] ?? 0) + sim.prixFacture;
+      totals[cat]!['rembourse'] =
+          (totals[cat]!['rembourse'] ?? 0) + sim.totalRembourse;
+      totals[cat]!['count'] = (totals[cat]!['count'] ?? 0) + 1;
     }
 
     return totals;
   }
 
-  List<Simulation> _getFilteredAndSortedSimulations() {
+  List<SimulationHistory> _getFilteredAndSortedSimulations() {
     var filtered = _simulations.where((simulation) {
       final matchesSearch = _searchQuery.isEmpty ||
-          simulation.titre.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          simulation.categorie
+          simulation.soinName
+              .toLowerCase()
+              .contains(_searchQuery.toLowerCase()) ||
+          (simulation.categorieName ?? '')
               .toLowerCase()
               .contains(_searchQuery.toLowerCase());
 
+      final cat = simulation.categorieName ?? 'Autre';
       final matchesCategory =
-          _selectedCategory == 'Tous' || simulation.categorie == _selectedCategory;
+          _selectedCategory == 'Tous' || cat == _selectedCategory;
 
-      // Filtre par période
+      // Period filter
       final now = DateTime.now();
       bool matchesPeriod = true;
 
       if (_selectedPeriod == '7 jours') {
-        matchesPeriod = now.difference(simulation.date).inDays <= 7;
+        matchesPeriod = now.difference(simulation.createdAt).inDays <= 7;
       } else if (_selectedPeriod == '30 jours') {
-        matchesPeriod = now.difference(simulation.date).inDays <= 30;
+        matchesPeriod = now.difference(simulation.createdAt).inDays <= 30;
       } else if (_selectedPeriod == '3 mois') {
-        matchesPeriod = now.difference(simulation.date).inDays <= 90;
+        matchesPeriod = now.difference(simulation.createdAt).inDays <= 90;
       }
 
       return matchesSearch && matchesCategory && matchesPeriod;
@@ -241,19 +179,20 @@ class _HistoriquePageState extends State<HistoriquePage>
 
     switch (_sortBy) {
       case 'date_asc':
-        filtered.sort((a, b) => a.date.compareTo(b.date));
+        filtered.sort((a, b) => a.createdAt.compareTo(b.createdAt));
         break;
       case 'date_desc':
-        filtered.sort((a, b) => b.date.compareTo(a.date));
+        filtered.sort((a, b) => b.createdAt.compareTo(a.createdAt));
         break;
       case 'montant_desc':
-        filtered.sort((a, b) => b.montant.compareTo(a.montant));
+        filtered.sort((a, b) => b.prixFacture.compareTo(a.prixFacture));
         break;
       case 'montant_asc':
-        filtered.sort((a, b) => a.montant.compareTo(b.montant));
+        filtered.sort((a, b) => a.prixFacture.compareTo(b.prixFacture));
         break;
       case 'economie_desc':
-        filtered.sort((a, b) => b.economieEstimee.compareTo(a.economieEstimee));
+        filtered
+            .sort((a, b) => b.totalRembourse.compareTo(a.totalRembourse));
         break;
     }
 
@@ -303,7 +242,7 @@ class _HistoriquePageState extends State<HistoriquePage>
               ),
               const PopupMenuItem(
                 value: 'economie_desc',
-                child: Text('Meilleure économie'),
+                child: Text('Meilleur remboursement'),
               ),
             ],
           ),
@@ -311,12 +250,18 @@ class _HistoriquePageState extends State<HistoriquePage>
       ),
       body: RefreshIndicator(
         onRefresh: _loadData,
-        child: _isLoading ? _buildSkeletonLoader() : _buildContent(filteredSimulations),
+        child: _isLoading
+            ? _buildSkeletonLoader()
+            : _buildContent(filteredSimulations),
       ),
     );
   }
 
-  Widget _buildContent(List<Simulation> filteredSimulations) {
+  Widget _buildContent(List<SimulationHistory> filteredSimulations) {
+    if (_simulations.isEmpty) {
+      return _buildEmptyHistoryState();
+    }
+
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       child: Padding(
@@ -324,11 +269,11 @@ class _HistoriquePageState extends State<HistoriquePage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Barre de recherche
+            // Search bar
             _buildSearchBar(),
             const SizedBox(height: 16),
 
-            // Section Filtres
+            // Filters section
             const Text(
               'Filtres',
               style: TextStyle(
@@ -339,19 +284,19 @@ class _HistoriquePageState extends State<HistoriquePage>
             ),
             const SizedBox(height: 12),
 
-            // Filtres par catégorie
+            // Category filters
             _buildCategoryFilters(),
             const SizedBox(height: 12),
 
-            // Filtres par période
+            // Period filters
             _buildPeriodFilters(),
             const SizedBox(height: 20),
 
-            // Bouton catégories (pleine largeur)
+            // Category totals button
             _buildCategoryButton(),
             const SizedBox(height: 24),
 
-            // Header avec nombre de résultats
+            // Results header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -374,13 +319,13 @@ class _HistoriquePageState extends State<HistoriquePage>
             ),
             const SizedBox(height: 16),
 
-            // Liste des simulations
+            // Simulation list
             if (filteredSimulations.isEmpty)
               _buildEmptyState()
             else
               ...List.generate(
                 filteredSimulations.length,
-                    (index) => TweenAnimationBuilder<double>(
+                (index) => TweenAnimationBuilder<double>(
                   duration: Duration(milliseconds: 300 + (index * 50)),
                   tween: Tween<double>(begin: 0, end: 1),
                   builder: (context, double value, child) {
@@ -394,7 +339,53 @@ class _HistoriquePageState extends State<HistoriquePage>
                   },
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: 12),
-                    child: _buildSimulationCard(filteredSimulations[index]),
+                    child: Dismissible(
+                      key: Key('sim_${filteredSimulations[index].id}'),
+                      direction: DismissDirection.endToStart,
+                      background: Container(
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 24),
+                        decoration: BoxDecoration(
+                          color: Colors.red[400],
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                      ),
+                      confirmDismiss: (direction) async {
+                        return await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Supprimer'),
+                            content: const Text(
+                                'Supprimer cette simulation de l\'historique ?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () =>
+                                    Navigator.pop(context, false),
+                                child: const Text('Annuler'),
+                              ),
+                              TextButton(
+                                onPressed: () =>
+                                    Navigator.pop(context, true),
+                                child: const Text(
+                                  'Supprimer',
+                                  style: TextStyle(color: Colors.red),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                      onDismissed: (_) {
+                        _deleteSimulation(filteredSimulations[index]);
+                      },
+                      child: _buildSimulationCard(
+                          filteredSimulations[index]),
+                    ),
                   ),
                 ),
               ),
@@ -406,7 +397,7 @@ class _HistoriquePageState extends State<HistoriquePage>
     );
   }
 
-  // Bouton pour afficher les totaux par catégorie (pleine largeur)
+  // Full-width category totals button
   Widget _buildCategoryButton() {
     final totals = _categoryTotals;
     final categoriesCount = totals.length;
@@ -426,7 +417,7 @@ class _HistoriquePageState extends State<HistoriquePage>
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.purple.withOpacity(0.3),
+              color: Colors.purple.withValues(alpha: 0.3),
               blurRadius: 15,
               offset: const Offset(0, 8),
             ),
@@ -437,7 +428,7 @@ class _HistoriquePageState extends State<HistoriquePage>
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(
@@ -481,20 +472,12 @@ class _HistoriquePageState extends State<HistoriquePage>
     );
   }
 
-  // Modal des totaux par catégorie
+  // Category totals modal
   void _showCategoryTotalsModal() {
     final totals = _categoryTotals;
     final entries = totals.entries.toList()
-      ..sort((a, b) => b.value['economie']!.compareTo(a.value['economie']!));
-
-    // Couleurs par catégorie
-    final categoryColors = {
-      'Spécialiste': Colors.blue,
-      'Généraliste': Colors.green,
-      'Imagerie': Colors.purple,
-      'Laboratoire': Colors.orange,
-      'Dentaire': Colors.teal,
-    };
+      ..sort(
+          (a, b) => b.value['rembourse']!.compareTo(a.value['rembourse']!));
 
     showModalBottomSheet(
       context: context,
@@ -554,7 +537,7 @@ class _HistoriquePageState extends State<HistoriquePage>
                         ),
                         SizedBox(height: 4),
                         Text(
-                          'Répartition de vos économies',
+                          'Répartition de vos remboursements',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.grey,
@@ -567,7 +550,7 @@ class _HistoriquePageState extends State<HistoriquePage>
               ),
               const SizedBox(height: 24),
 
-              // Résumé global
+              // Global summary
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -580,7 +563,7 @@ class _HistoriquePageState extends State<HistoriquePage>
                     Column(
                       children: [
                         Text(
-                          '${_totalEconomie.toStringAsFixed(0)}€',
+                          '${_totalRembourse.toStringAsFixed(0)}€',
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
@@ -589,7 +572,7 @@ class _HistoriquePageState extends State<HistoriquePage>
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Total économisé',
+                          'Total remboursé',
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey[600],
@@ -637,23 +620,23 @@ class _HistoriquePageState extends State<HistoriquePage>
               ),
               const SizedBox(height: 16),
 
-              // Liste des catégories
+              // Category list
               Expanded(
                 child: ListView.builder(
                   itemCount: entries.length,
                   itemBuilder: (context, index) {
                     final entry = entries[index];
                     final category = entry.key;
-                    final economie = entry.value['economie']!;
-                    final montant = entry.value['montant']!;
+                    final rembourse = entry.value['rembourse']!;
                     final count = entry.value['count']!.toInt();
-                    final percentage = (_totalEconomie > 0)
-                        ? (economie / _totalEconomie * 100)
+                    final percentage = (_totalRembourse > 0)
+                        ? (rembourse / _totalRembourse * 100)
                         : 0.0;
-                    final color = categoryColors[category] ?? Colors.grey;
+                    final color = _colorForCategory(category);
 
                     return TweenAnimationBuilder<double>(
-                      duration: Duration(milliseconds: 500 + (index * 100)),
+                      duration:
+                          Duration(milliseconds: 500 + (index * 100)),
                       tween: Tween(begin: 0, end: 1),
                       builder: (context, value, child) {
                         return Opacity(
@@ -663,18 +646,20 @@ class _HistoriquePageState extends State<HistoriquePage>
                             child: Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: color.withOpacity(0.05),
+                                color: color.withValues(alpha: 0.05),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: color.withOpacity(0.2),
+                                  color: color.withValues(alpha: 0.2),
                                   width: 1,
                                 ),
                               ),
                               child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
                                 children: [
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Row(
                                         children: [
@@ -698,7 +683,7 @@ class _HistoriquePageState extends State<HistoriquePage>
                                         ],
                                       ),
                                       Text(
-                                        '${economie.toStringAsFixed(2)} €',
+                                        '${rembourse.toStringAsFixed(2)} €',
                                         style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
@@ -709,18 +694,26 @@ class _HistoriquePageState extends State<HistoriquePage>
                                   ),
                                   const SizedBox(height: 12),
 
-                                  // Barre de progression
+                                  // Progress bar
                                   ClipRRect(
-                                    borderRadius: BorderRadius.circular(4),
+                                    borderRadius:
+                                        BorderRadius.circular(4),
                                     child: TweenAnimationBuilder<double>(
-                                      duration: Duration(milliseconds: 800 + (index * 100)),
-                                      tween: Tween(begin: 0, end: percentage / 100),
+                                      duration: Duration(
+                                          milliseconds:
+                                              800 + (index * 100)),
+                                      tween: Tween(
+                                          begin: 0,
+                                          end: percentage / 100),
                                       builder: (context, value, child) {
                                         return LinearProgressIndicator(
                                           value: value,
                                           minHeight: 8,
-                                          backgroundColor: Colors.grey[200],
-                                          valueColor: AlwaysStoppedAnimation<Color>(color),
+                                          backgroundColor:
+                                              Colors.grey[200],
+                                          valueColor:
+                                              AlwaysStoppedAnimation<
+                                                  Color>(color),
                                         );
                                       },
                                     ),
@@ -728,7 +721,8 @@ class _HistoriquePageState extends State<HistoriquePage>
                                   const SizedBox(height: 8),
 
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
                                         '$count simulation${count > 1 ? 's' : ''}',
@@ -795,7 +789,7 @@ class _HistoriquePageState extends State<HistoriquePage>
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -810,9 +804,9 @@ class _HistoriquePageState extends State<HistoriquePage>
           icon: Icon(Icons.search, color: Colors.grey[600]),
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
-            icon: const Icon(Icons.clear, color: Colors.grey),
-            onPressed: () => setState(() => _searchQuery = ''),
-          )
+                  icon: const Icon(Icons.clear, color: Colors.grey),
+                  onPressed: () => setState(() => _searchQuery = ''),
+                )
               : null,
         ),
       ),
@@ -840,7 +834,9 @@ class _HistoriquePageState extends State<HistoriquePage>
                   Icon(
                     Icons.calendar_today,
                     size: 14,
-                    color: isSelected ? Colors.orange[700] : Colors.grey[600],
+                    color: isSelected
+                        ? Colors.orange[700]
+                        : Colors.grey[600],
                   ),
                   const SizedBox(width: 6),
                   Text(period),
@@ -854,8 +850,10 @@ class _HistoriquePageState extends State<HistoriquePage>
               selectedColor: Colors.orange[100],
               labelStyle: TextStyle(
                 fontSize: 13,
-                color: isSelected ? Colors.orange[700] : Colors.grey[700],
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                color:
+                    isSelected ? Colors.orange[700] : Colors.grey[700],
+                fontWeight:
+                    isSelected ? FontWeight.w600 : FontWeight.normal,
               ),
               side: BorderSide(
                 color: isSelected ? Colors.orange : Colors.grey[300]!,
@@ -868,13 +866,15 @@ class _HistoriquePageState extends State<HistoriquePage>
   }
 
   Widget _buildCategoryFilters() {
+    final cats = _categories;
+
     return SizedBox(
       height: 40,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        itemCount: _categories.length,
+        itemCount: cats.length,
         itemBuilder: (context, index) {
-          final category = _categories[index];
+          final category = cats[index];
           final isSelected = category == _selectedCategory;
 
           return Padding(
@@ -890,7 +890,8 @@ class _HistoriquePageState extends State<HistoriquePage>
               labelStyle: TextStyle(
                 fontSize: 13,
                 color: isSelected ? Colors.blue[700] : Colors.grey[700],
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                fontWeight:
+                    isSelected ? FontWeight.w600 : FontWeight.normal,
               ),
               side: BorderSide(
                 color: isSelected ? Colors.blue : Colors.grey[300]!,
@@ -903,7 +904,9 @@ class _HistoriquePageState extends State<HistoriquePage>
     );
   }
 
-  Widget _buildSimulationCard(Simulation simulation) {
+  Widget _buildSimulationCard(SimulationHistory simulation) {
+    final color = _colorForCategory(simulation.categorieName);
+
     return InkWell(
       onTap: () => _showSimulationDetails(simulation),
       borderRadius: BorderRadius.circular(16),
@@ -912,10 +915,11 @@ class _HistoriquePageState extends State<HistoriquePage>
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: simulation.color.withOpacity(0.3), width: 2),
+          border: Border.all(
+              color: color.withValues(alpha: 0.3), width: 2),
           boxShadow: [
             BoxShadow(
-              color: simulation.color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -929,14 +933,16 @@ class _HistoriquePageState extends State<HistoriquePage>
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: simulation.color.withOpacity(0.1),
+                    color: color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(
-                    simulation.icon,
-                    color: simulation.color,
-                    size: 24,
-                  ),
+                  child: simulation.soinIcon != null
+                      ? Text(
+                          simulation.soinIcon!,
+                          style: const TextStyle(fontSize: 24),
+                        )
+                      : Icon(Icons.medical_services,
+                          color: color, size: 24),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -944,7 +950,7 @@ class _HistoriquePageState extends State<HistoriquePage>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        simulation.titre,
+                        simulation.soinName,
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -953,7 +959,7 @@ class _HistoriquePageState extends State<HistoriquePage>
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        simulation.categorie,
+                        simulation.categorieName ?? 'Autre',
                         style: TextStyle(
                           fontSize: 13,
                           color: Colors.grey[600],
@@ -975,12 +981,13 @@ class _HistoriquePageState extends State<HistoriquePage>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Montant',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      'Prix facturé',
+                      style:
+                          TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${simulation.montant.toStringAsFixed(2)} €',
+                      '${simulation.prixFacture.toStringAsFixed(2)} €',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -993,12 +1000,13 @@ class _HistoriquePageState extends State<HistoriquePage>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Remboursement estimé',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      'Remboursé',
+                      style:
+                          TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${simulation.economieEstimee.toStringAsFixed(2)} €',
+                      '${simulation.totalRembourse.toStringAsFixed(2)} €',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -1012,11 +1020,12 @@ class _HistoriquePageState extends State<HistoriquePage>
                   children: [
                     Text(
                       'Date',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      style:
+                          TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      _formatDate(simulation.date),
+                      _formatDate(simulation.createdAt),
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
@@ -1033,6 +1042,67 @@ class _HistoriquePageState extends State<HistoriquePage>
     );
   }
 
+  // Empty state when no simulations exist at all
+  Widget _buildEmptyHistoryState() {
+    return Center(
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.history, size: 80, color: Colors.grey[300]),
+              const SizedBox(height: 24),
+              Text(
+                'Aucune simulation',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[700],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Vos simulations de remboursement\napparaîtront ici automatiquement.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: Colors.grey[500],
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 32),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.blue[700]),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Consultez un soin pour lancer une simulation.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.blue[700],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Empty state for filter results
   Widget _buildEmptyState() {
     return Center(
       child: Padding(
@@ -1060,7 +1130,7 @@ class _HistoriquePageState extends State<HistoriquePage>
             Row(
               children: List.generate(
                 3,
-                    (index) => Expanded(
+                (index) => Expanded(
                   child: Padding(
                     padding: EdgeInsets.only(right: index < 2 ? 12 : 0),
                     child: _buildSkeletonBox(100),
@@ -1075,7 +1145,7 @@ class _HistoriquePageState extends State<HistoriquePage>
             const SizedBox(height: 16),
             ...List.generate(
               5,
-                  (index) => Padding(
+              (index) => Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: _buildSkeletonBox(140),
               ),
@@ -1124,13 +1194,15 @@ class _HistoriquePageState extends State<HistoriquePage>
     return '${date.day}/${date.month}/${date.year}';
   }
 
-  void _showSimulationDetails(Simulation simulation) {
+  void _showSimulationDetails(SimulationHistory simulation) {
+    final color = _colorForCategory(simulation.categorieName);
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
+        height: MediaQuery.of(context).size.height * 0.8,
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.only(
@@ -1140,125 +1212,235 @@ class _HistoriquePageState extends State<HistoriquePage>
         ),
         child: Padding(
           padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
                     decoration: BoxDecoration(
-                      color: simulation.color.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Icon(
-                      simulation.icon,
-                      color: simulation.color,
-                      size: 32,
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          simulation.titre,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          simulation.categorie,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 32),
-              _buildDetailRow('Montant total', '${simulation.montant.toStringAsFixed(2)} €'),
-              _buildDetailRow('Remboursement estimé', '${simulation.economieEstimee.toStringAsFixed(2)} €'),
-              _buildDetailRow(
-                'Reste à charge',
-                '${(simulation.montant - simulation.economieEstimee).toStringAsFixed(2)} €',
-              ),
-              _buildDetailRow(
-                'Taux de remboursement',
-                '${((simulation.economieEstimee / simulation.montant) * 100).toStringAsFixed(0)}%',
-              ),
-              _buildDetailRow('Date de simulation', _formatDate(simulation.date)),
-              _buildDetailRow('Référence', '#${simulation.id.toUpperCase()}'),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Row(
+                const SizedBox(height: 24),
+                Row(
                   children: [
-                    Icon(Icons.info_outline, color: Colors.blue[700]),
-                    const SizedBox(width: 12),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: simulation.soinIcon != null
+                          ? Text(
+                              simulation.soinIcon!,
+                              style: const TextStyle(fontSize: 32),
+                            )
+                          : Icon(Icons.medical_services,
+                              color: color, size: 32),
+                    ),
+                    const SizedBox(width: 16),
                     Expanded(
-                      child: Text(
-                        'Ceci est une estimation. Les remboursements réels peuvent varier.',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.blue[700],
-                        ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            simulation.soinName,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            simulation.categorieName ?? 'Autre',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: simulation.color,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                const SizedBox(height: 24),
+
+                // Coverage percentage bar
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.green[50],
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Text(
-                    'Fermer',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment:
+                            MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Prise en charge',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            '${simulation.pourcentagePriseEnCharge.toStringAsFixed(0)}%',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green[700],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value:
+                              simulation.pourcentagePriseEnCharge / 100,
+                          minHeight: 8,
+                          backgroundColor: Colors.grey[200],
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.green[600]!),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Detailed breakdown
+                const Text(
+                  'Détail du remboursement',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                _buildDetailRow('Prix facturé',
+                    '${simulation.prixFacture.toStringAsFixed(2)} €'),
+                _buildDetailRow(
+                    'Base de remboursement (BRSS)',
+                    '${simulation.brss.toStringAsFixed(2)} €'),
+                _buildDetailRow('Taux Sécurité sociale',
+                    '${simulation.tauxSecu.toStringAsFixed(0)}%'),
+                _buildDetailRow(
+                  'Remboursement Sécu',
+                  '${simulation.remboursementSecu.toStringAsFixed(2)} €',
+                  valueColor: Colors.green[700],
+                ),
+                _buildDetailRow(
+                  'Remboursement Mutuelle',
+                  '${simulation.remboursementMutuelle.toStringAsFixed(2)} €',
+                  valueColor: Colors.green[700],
+                ),
+                if (simulation.participationForfaitaire > 0)
+                  _buildDetailRow(
+                    'Participation forfaitaire',
+                    '-${simulation.participationForfaitaire.toStringAsFixed(2)} €',
+                    valueColor: Colors.orange[700],
+                  ),
+                if (simulation.montantDepassement > 0)
+                  _buildDetailRow(
+                    'Dépassement d\'honoraires',
+                    '${simulation.montantDepassement.toStringAsFixed(2)} €',
+                    valueColor: Colors.orange[700],
+                  ),
+                _buildDetailRow(
+                  'Conventionné',
+                  simulation.estConventionne ? 'Oui' : 'Non',
+                ),
+
+                const SizedBox(height: 8),
+                Divider(color: Colors.grey[300]),
+                const SizedBox(height: 8),
+
+                _buildDetailRow(
+                  'Total remboursé',
+                  '${simulation.totalRembourse.toStringAsFixed(2)} €',
+                  valueColor: Colors.green[700],
+                  isBold: true,
+                ),
+                _buildDetailRow(
+                  'Reste à charge',
+                  '${simulation.resteACharge.toStringAsFixed(2)} €',
+                  valueColor: Colors.red[700],
+                  isBold: true,
+                ),
+                _buildDetailRow(
+                    'Date de simulation',
+                    _formatDate(simulation.createdAt)),
+                _buildDetailRow(
+                    'Référence', '#${simulation.id}'),
+
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline,
+                          color: Colors.blue[700]),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Ceci est une estimation. Les remboursements réels peuvent varier.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.blue[700],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: color,
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Fermer',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
+  Widget _buildDetailRow(String label, String value,
+      {Color? valueColor, bool isBold = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
@@ -1269,14 +1451,16 @@ class _HistoriquePageState extends State<HistoriquePage>
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[600],
+              fontWeight: isBold ? FontWeight.w600 : FontWeight.normal,
             ),
           ),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
+              fontWeight:
+                  isBold ? FontWeight.bold : FontWeight.w600,
+              color: valueColor ?? Colors.black87,
             ),
           ),
         ],
