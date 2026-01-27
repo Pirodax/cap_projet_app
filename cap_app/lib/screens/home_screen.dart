@@ -3,7 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/category_service.dart';
-import '../widgets/Search_Bar.dart';
+import '../widgets/search_bar.dart';
 import 'category_details_screen.dart';
 import 'soin_detail_screen.dart';
 
