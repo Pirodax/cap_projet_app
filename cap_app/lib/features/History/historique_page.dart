@@ -113,6 +113,37 @@ class _HistoriquePageState extends State<HistoriquePage>
     });
   }
 
+  Future<bool?> _confirmDelete() {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Supprimer'),
+        content:
+            const Text('Supprimer cette simulation de l\'historique ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              'Supprimer',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmAndDelete(SimulationHistory simulation) async {
+    final confirmed = await _confirmDelete();
+    if (confirmed == true) {
+      _deleteSimulation(simulation);
+    }
+  }
+
   @override
   void dispose() {
     _animationController.dispose();
@@ -355,31 +386,7 @@ class _HistoriquePageState extends State<HistoriquePage>
                           size: 28,
                         ),
                       ),
-                      confirmDismiss: (direction) async {
-                        return await showDialog<bool>(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: const Text('Supprimer'),
-                            content: const Text(
-                                'Supprimer cette simulation de l\'historique ?'),
-                            actions: [
-                              TextButton(
-                                onPressed: () =>
-                                    Navigator.pop(context, false),
-                                child: const Text('Annuler'),
-                              ),
-                              TextButton(
-                                onPressed: () =>
-                                    Navigator.pop(context, true),
-                                child: const Text(
-                                  'Supprimer',
-                                  style: TextStyle(color: Colors.red),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
+                      confirmDismiss: (direction) => _confirmDelete(),
                       onDismissed: (_) {
                         _deleteSimulation(filteredSimulations[index]);
                       },
@@ -968,6 +975,15 @@ class _HistoriquePageState extends State<HistoriquePage>
                     ],
                   ),
                 ),
+                IconButton(
+                  icon: Icon(Icons.delete_outline, color: Colors.grey[400]),
+                  onPressed: () => _confirmAndDelete(simulation),
+                  tooltip: 'Supprimer',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  splashRadius: 20,
+                ),
+                const SizedBox(width: 4),
                 Icon(Icons.chevron_right, color: Colors.grey[400]),
               ],
             ),
