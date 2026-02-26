@@ -3,12 +3,14 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/supabase/supabase_init.dart';
 
 class SignUpScreen extends StatefulWidget {
-  const SignUpScreen({super.key});
+  final SupabaseClient? supabaseClient;
+  const SignUpScreen({super.key, this.supabaseClient});
   @override
   State<SignUpScreen> createState() => _SignUpScreenState();
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
+  late final SupabaseClient _supabase;
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _pwdCtrl = TextEditingController();
@@ -16,8 +18,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool _loading = false;
   String? _error;
 
-  // Deep-link de retour OAuth / email confirmation
-  //static const _redirect = 'com.monapp://login-callback/'; // ← Assure-toi que c'est le bon
+  @override
+  void initState() {
+    super.initState();
+    _supabase = widget.supabaseClient ?? supabase;
+  }
 
   @override
   void dispose() {
@@ -33,21 +38,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
       _error = null;
     });
     try {
-      await supabase.auth.signUp(
+      await _supabase.auth.signUp(
         email: _emailCtrl.text.trim(),
         password: _pwdCtrl.text,
-        //emailRedirectTo: _redirect,
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Vérifie ton email pour confirmer ton compte.')),
       );
-      // Redirige vers la page de connexion après l'inscription
       Navigator.of(context).pop();
     } on AuthException catch (e) {
-      setState(() => _error = e.message);
+      if (mounted) setState(() => _error = e.message);
     } catch (_) {
-      setState(() => _error = "Une erreur inattendue est survenue.");
+      if (mounted) setState(() => _error = "Une erreur inattendue est survenue.");
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -57,7 +60,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final disabled = _loading;
-
 
     return Scaffold(
       body: Container(
@@ -73,108 +75,109 @@ class _SignUpScreenState extends State<SignUpScreen> {
           ),
         ),
         child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 460),
-            child: Padding(
-              padding: const EdgeInsets.all(18),
-              child: Card(
-                elevation: 8,
-                shadowColor: Colors.black.withOpacity(0.3),
-                color: cs.surface.withOpacity(0.85),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Créer un compte',
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
-                              ?.copyWith(fontWeight: FontWeight.w700),
-                        ),
-                        const SizedBox(height: 22),
-                        TextFormField(
-                          controller: _emailCtrl,
-                          enabled: !disabled,
-                          keyboardType: TextInputType.emailAddress,
-                          autofillHints: const [AutofillHints.email],
-                          decoration: const InputDecoration(
-                            labelText: 'Email',
-                            prefixIcon: Icon(Icons.email_outlined),
+          child: SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 460),
+              child: Padding(
+                padding: const EdgeInsets.all(18),
+                child: Card(
+                  elevation: 8,
+                  shadowColor: Colors.black.withOpacity(0.3),
+                  color: cs.surface.withOpacity(0.85),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Créer un compte',
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineSmall
+                                ?.copyWith(fontWeight: FontWeight.w700),
                           ),
-                           validator: (v) {
-                            final value = v?.trim() ?? '';
-                            if (value.isEmpty) return 'Email requis';
-                            final ok = RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(value);
-                            if (!ok) return 'Email invalide';
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 14),
-                        TextFormField(
-                          controller: _pwdCtrl,
-                          enabled: !disabled,
-                          obscureText: _obscure,
-                          autofillHints: const [AutofillHints.newPassword],
-                          decoration: InputDecoration(
-                            labelText: 'Mot de passe',
-                            prefixIcon: const Icon(Icons.lock_outline),
-                            suffixIcon: IconButton(
-                              tooltip: _obscure ? 'Afficher' : 'Masquer',
-                              onPressed: disabled
-                                  ? null
-                                  : () => setState(() => _obscure = !_obscure),
-                              icon: Icon(
-                                _obscure
-                                    ? Icons.visibility_outlined
-                                    : Icons.visibility_off_outlined,
+                          const SizedBox(height: 22),
+                          TextFormField(
+                            controller: _emailCtrl,
+                            enabled: !disabled,
+                            keyboardType: TextInputType.emailAddress,
+                            autofillHints: const [AutofillHints.email],
+                            decoration: const InputDecoration(
+                              labelText: 'Email',
+                              prefixIcon: Icon(Icons.email_outlined),
+                            ),
+                             validator: (v) {
+                              final value = v?.trim() ?? '';
+                              if (value.isEmpty) return 'Email requis';
+                              final ok = RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(value);
+                              if (!ok) return 'Email invalide';
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 14),
+                          TextFormField(
+                            controller: _pwdCtrl,
+                            enabled: !disabled,
+                            obscureText: _obscure,
+                            autofillHints: const [AutofillHints.newPassword],
+                            decoration: InputDecoration(
+                              labelText: 'Mot de passe',
+                              prefixIcon: const Icon(Icons.lock_outline),
+                              suffixIcon: IconButton(
+                                tooltip: _obscure ? 'Afficher' : 'Masquer',
+                                onPressed: disabled
+                                    ? null
+                                    : () => setState(() => _obscure = !_obscure),
+                                icon: Icon(
+                                  _obscure
+                                      ? Icons.visibility_outlined
+                                      : Icons.visibility_off_outlined,
+                                ),
                               ),
                             ),
+                            validator: (v) {
+                              final value = v ?? '';
+                              if (value.isEmpty) return 'Mot de passe requis';
+                              return null;
+                            },
+                            onFieldSubmitted: (_) => _submit(),
                           ),
-                          validator: (v) {
-                            final value = v ?? '';
-                            if (value.isEmpty) return 'Mot de passe requis';
-                            //if (value.length < 8) return 'Au moins 8 caractères';
-                            return null;
-                          },
-                          onFieldSubmitted: (_) => _submit(),
-                        ),
-                        if (_error != null) ...[
-                          const SizedBox(height: 14),
-                          _ErrorBanner(message: _error!),
-                        ],
-                        const SizedBox(height: 24),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 52,
-                          child: FilledButton(
-                            onPressed: disabled ? null : _submit,
-                            child: _loading
-                                ? const SizedBox(
-                              height: 22,
-                              width: 22,
-                              child: CircularProgressIndicator(strokeWidth: 2.4),
-                            )
-                                : const Text('Créer un compte'),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Text("Déjà un compte ?"),
-                            TextButton(
-                              onPressed: disabled ? null : () => Navigator.of(context).pop(),
-                              child: const Text("Se connecter"),
-                            ),
+                          if (_error != null) ...[
+                            const SizedBox(height: 14),
+                            _ErrorBanner(message: _error!),
                           ],
-                        ),
-                      ],
+                          const SizedBox(height: 24),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 52,
+                            child: FilledButton(
+                              onPressed: disabled ? null : _submit,
+                              child: _loading
+                                  ? const SizedBox(
+                                height: 22,
+                                width: 22,
+                                child: CircularProgressIndicator(strokeWidth: 2.4),
+                              )
+                                  : const Text('Créer un compte'),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          Wrap(
+                            alignment: WrapAlignment.center,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              const Text("Déjà un compte ?"),
+                              TextButton(
+                                onPressed: disabled ? null : () => Navigator.of(context).pop(),
+                                child: const Text("Se connecter"),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),

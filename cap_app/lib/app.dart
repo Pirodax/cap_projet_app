@@ -6,6 +6,8 @@ import 'screens/home_screen.dart';
 import 'screens/profile_screen.dart';
 import 'widgets/bottom_navbar.dart';
 import 'features/History/historique_page.dart';
+import 'services/category_service.dart';
+import 'services/profile_service.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -29,38 +31,46 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const AuthStateListener(), // Remplacer initialRoute par home
+      home: const AuthStateListener(),
       routes: {
-        // Laisser la route signup pour la navigation explicite
         '/signup': (_) => const auth.SignUpScreen(),
       },
     );
   }
 }
 
-// Widget qui écoute les changements d'état d'authentification
 class AuthStateListener extends StatelessWidget {
-  const AuthStateListener({super.key});
+  final SupabaseClient? supabaseClient;
+  final CategoryService? categoryService;
+  final ProfileService? profileService;
+
+  const AuthStateListener({
+    super.key, 
+    this.supabaseClient,
+    this.categoryService,
+    this.profileService,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final client = supabaseClient ?? Supabase.instance.client;
     return StreamBuilder<AuthState>(
-      stream: Supabase.instance.client.auth.onAuthStateChange,
+      stream: client.auth.onAuthStateChange,
       builder: (context, snapshot) {
-        // Pendant le chargement de l'état initial
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
 
-        // Si l'utilisateur est connecté (session existe)
         if (snapshot.hasData && snapshot.data?.session != null) {
-          return const MainPage();
+          return MainPage(
+            categoryService: categoryService,
+            profileService: profileService,
+          );
         } 
-        // Sinon, afficher l'écran de connexion
         else {
-          return const SignInScreen();
+          return SignInScreen(supabaseClient: supabaseClient);
         }
       },
     );
@@ -69,7 +79,10 @@ class AuthStateListener extends StatelessWidget {
 
 
 class MainPage extends StatefulWidget {
-  const MainPage({super.key});
+  final CategoryService? categoryService;
+  final ProfileService? profileService;
+
+  const MainPage({super.key, this.categoryService, this.profileService});
 
   @override
   State<MainPage> createState() => _MainPageState();
@@ -85,9 +98,9 @@ class _MainPageState extends State<MainPage> {
   @override
   Widget build(BuildContext context) {
     final List<Widget> pages = [
-      const HomeScreen(),
+      HomeScreen(categoryService: widget.categoryService),
       const HistoriquePage(),
-      const ProfileScreen(),
+      ProfileScreen(profileService: widget.profileService),
     ];
 
     return Scaffold(

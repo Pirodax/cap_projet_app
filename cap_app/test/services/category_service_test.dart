@@ -48,8 +48,9 @@ void main() {
         {'id': 2, 'name': 'Optique', 'icon': '👓'},
       ];
 
+      // On utilise thenAnswer pour éviter l'erreur de Future avec mocktail
       when(() => mockSupabase.from('categories_soins'))
-          .thenReturn(FakeSupabaseQueryBuilder(mockData));
+          .thenAnswer((_) => FakeSupabaseQueryBuilder(mockData));
 
       final result = await service.getCategories();
 
@@ -72,7 +73,7 @@ void main() {
       ];
 
       when(() => mockSupabase.from('soins'))
-          .thenReturn(FakeSupabaseQueryBuilder(mockSoins));
+          .thenAnswer((_) => FakeSupabaseQueryBuilder(mockSoins));
 
       final result = await service.getDetailSoins(1);
 

@@ -6,12 +6,14 @@ class CategoryDetailsScreen extends StatefulWidget {
   final int categoryId;
   final String categoryName;
   final String categoryIcon;
+  final CategoryService? categoryService;
 
   const CategoryDetailsScreen({
     super.key,
     required this.categoryId,
     required this.categoryName,
     required this.categoryIcon,
+    this.categoryService,
   });
 
   @override
@@ -19,12 +21,13 @@ class CategoryDetailsScreen extends StatefulWidget {
 }
 
 class _CategoryDetailsScreenState extends State<CategoryDetailsScreen> {
-  final CategoryService _categoryService = CategoryService();
+  late final CategoryService _categoryService;
   late Future<List<Map<String, dynamic>>> _detailSoinsFuture;
 
   @override
   void initState() {
     super.initState();
+    _categoryService = widget.categoryService ?? CategoryService();
     _detailSoinsFuture = _categoryService.getDetailSoins(widget.categoryId);
   }
 

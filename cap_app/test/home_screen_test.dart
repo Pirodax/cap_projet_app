@@ -4,69 +4,103 @@ import 'package:loodo_app/screens/home_screen.dart';
 import 'package:loodo_app/services/category_service.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:loodo_app/screens/category_details_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-// Mock du service de catégories
 class MockCategoryService extends Mock implements CategoryService {}
 
 void main() {
   late MockCategoryService mockCategoryService;
 
-  setUp(() {
-    mockCategoryService = MockCategoryService();
+  setUpAll(() async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    SharedPreferences.setMockInitialValues({});
+    await Supabase.initialize(url: 'https://test.com', anonKey: 'key');
   });
 
-  // Helper pour créer le widget de test
+  setUp(() {
+    mockCategoryService = MockCategoryService();
+    when(() => mockCategoryService.getCategories()).thenAnswer((_) async => []);
+  });
+
   Widget createTestWidget() {
     return MaterialApp(
-      home: HomeScreen(),
+      debugShowCheckedModeBanner: false,
+      home: HomeScreen(categoryService: mockCategoryService),
     );
   }
 
-  // Comme HomeScreen crée son propre service en interne, on va devoir ruser
-  // ou modifier HomeScreen pour accepter un service en paramètre. 
-  // Mais pour l'instant, testons les éléments UI de base.
+  group('HomeScreen Coverage Tests', () {
+    testWidgets('Displays categories when loading succeeds', (tester) async {
+      final mockData = [
+        {'id': 1, 'name': 'Dentaire', 'icon': '🦷'},
+      ];
+      when(() => mockCategoryService.getCategories()).thenAnswer((_) async => mockData);
 
-  group('HomeScreen Widget Tests', () {
-    testWidgets('Displays app title and subtitle', (WidgetTester tester) async {
-      await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
-      
-      expect(find.text('CAP PROJET'), findsOneWidget);
-      expect(find.text('Ma mutuelle, mes avantages !'), findsOneWidget);
-    });
-
-    testWidgets('Search bar interactions', (WidgetTester tester) async {
-      await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
-
-      final searchFinder = find.byType(TextField);
-      expect(searchFinder, findsOneWidget);
-
-      // Cliquer sur la barre de recherche active l'overlay
-      await tester.tap(searchFinder);
+      await tester.pumpWidget(createTestWidget());
+      await tester.pump(); // Démarre le Future
       await tester.pumpAndSettle();
 
-      expect(find.text('Que recherchez-vous ?'), findsOneWidget);
-
-      // Taper du texte
-      await tester.enterText(searchFinder, 'dentaire');
-      await tester.pump();
-
-      // Vérifier que le bouton clear apparaît
-      expect(find.byIcon(Icons.clear), findsOneWidget);
-
-      // Effacer la recherche
-      await tester.tap(find.byIcon(Icons.clear));
-      await tester.pump();
-      
-      final textField = tester.widget<TextField>(searchFinder);
-      expect(textField.controller?.text, isEmpty);
+      expect(find.text('Dentaire'), findsOneWidget);
     });
 
-    testWidgets('News section is displayed', (WidgetTester tester) async {
-      await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
-      
-      expect(find.text('Actualités'), findsOneWidget);
-      expect(find.text('Nouvelles mesures de remboursement'), findsOneWidget);
-      expect(find.byIcon(Icons.article), findsWidgets);
+    testWidgets('Displays error message when loading fails', (tester) async {
+      when(() => mockCategoryService.getCategories())
+          .thenAnswer((_) async => throw Exception('Erreur réseau'));
+
+      await tester.pumpWidget(createTestWidget());
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Erreur'), findsOneWidget);
+    });
+
+    testWidgets('Navigates to CategoryDetailsScreen on tap', (tester) async {
+      final mockData = [{'id': 1, 'name': 'Dentaire', 'icon': '🦷'}];
+      when(() => mockCategoryService.getCategories()).thenAnswer((_) async => mockData);
+      when(() => mockCategoryService.getDetailSoins(any())).thenAnswer((_) async => []);
+
+      await tester.pumpWidget(createTestWidget());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Dentaire'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CategoryDetailsScreen), findsOneWidget);
+    });
+
+    testWidgets('Search overlay filters categories correctly', (tester) async {
+      final mockData = [
+        {'id': 1, 'name': 'Dentaire', 'icon': '🦷'},
+        {'id': 2, 'name': 'Médecin', 'icon': '👨‍⚕️'},
+      ];
+      when(() => mockCategoryService.getCategories()).thenAnswer((_) async => mockData);
+
+      await tester.pumpWidget(createTestWidget());
+      await tester.pumpAndSettle();
+
+      // Activer la recherche
+      await tester.tap(find.byType(TextField));
+      await tester.pumpAndSettle();
+
+      // Taper "Den"
+      await tester.enterText(find.byType(TextField), 'Den');
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // On vérifie que "Dentaire" est présent dans les résultats (ListTile blancs)
+      // On utilise le style de texte blanc spécifique à l'overlay pour ne pas confondre avec le fond
+      final resultFinder = find.ancestor(
+        of: find.text('Dentaire'),
+        matching: find.byType(ListTile),
+      );
+      expect(resultFinder, findsOneWidget);
+
+      // On vérifie que "Médecin" n'est PAS présent dans les résultats (ListTile)
+      final invalidResultFinder = find.ancestor(
+        of: find.text('Médecin'),
+        matching: find.byType(ListTile),
+      );
+      expect(invalidResultFinder, findsNothing);
     });
   });
 }

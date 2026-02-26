@@ -1,21 +1,19 @@
-
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/supabase/supabase_init.dart';
 
 class CategoryService {
+  final SupabaseClient _supabase;
+
+  CategoryService([SupabaseClient? client]) : _supabase = client ?? supabase;
+
   Future<List<Map<String, dynamic>>> getCategories() async {
     try {
-      //final user = supabase.auth.currentUser;
-
-
-      final response = await supabase
+      final response = await _supabase
           .from('categories_soins')
           .select('id, name, icon, created_at');
-      //.eq('user_id', user.id);
 
-      return List<Map<String, dynamic>>.from(response);
-
+      return List<Map<String, dynamic>>.from(response as List);
     } catch (e) {
-      // Gérer l'erreur, par exemple, en la journalisant ou en la lançant à nouveau
       print('Error fetching categories: $e');
       return [];
     }
@@ -23,12 +21,12 @@ class CategoryService {
 
   Future<List<Map<String, dynamic>>> getDetailSoins(int categoryId) async {
     try {
-      final response = await supabase
+      final response = await _supabase
           .from('soins')
           .select('id, name, brss, detail')
           .eq('categorie_id', categoryId);
 
-      return List<Map<String, dynamic>>.from(response);
+      return List<Map<String, dynamic>>.from(response as List);
     } catch (e) {
       print('Error fetching soins: $e');
       return [];

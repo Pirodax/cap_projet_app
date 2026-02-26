@@ -1,21 +1,24 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import '../lib/app.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:loodo_app/app.dart';
 
 void main() {
-  testWidgets('App starts without crashing', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  setUpAll(() async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    // Simule SharedPreferences pour Supabase
+    SharedPreferences.setMockInitialValues({});
+    
+    // Initialise Supabase avec des valeurs bidon pour les tests
+    await Supabase.initialize(
+      url: 'https://test.com',
+      anonKey: 'key',
+    );
+  });
 
-    // Verify that the initial screen is rendered without throwing an error.
+  testWidgets('App starts without crashing', (WidgetTester tester) async {
+    await tester.pumpWidget(const MyApp());
     expect(find.byType(MaterialApp), findsOneWidget);
   });
 }

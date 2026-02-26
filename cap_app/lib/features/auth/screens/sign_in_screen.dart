@@ -3,18 +3,27 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/supabase/supabase_init.dart';
 
 class SignInScreen extends StatefulWidget {
-  const SignInScreen({super.key});
+  final SupabaseClient? supabaseClient;
+  const SignInScreen({super.key, this.supabaseClient});
+  
   @override
   State<SignInScreen> createState() => _SignInScreenState();
 }
 
 class _SignInScreenState extends State<SignInScreen> {
+  late final SupabaseClient _supabase;
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _pwdCtrl = TextEditingController();
   bool _obscure = true;
   bool _loading = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _supabase = widget.supabaseClient ?? supabase;
+  }
 
   @override
   void dispose() {
@@ -30,34 +39,33 @@ class _SignInScreenState extends State<SignInScreen> {
       _error = null;
     });
     try {
-      final response = await supabase.auth.signInWithPassword(
+      final response = await _supabase.auth.signInWithPassword(
         email: _emailCtrl.text.trim(),
         password: _pwdCtrl.text,
       );
-      // Ajout de la navigation après une connexion réussie
       if (mounted && response.user != null) {
-        // pushReplacementNamed empêche l'utilisateur de revenir à l'écran de connexion
         Navigator.of(context).pushReplacementNamed('/main');
       }
     } on AuthException catch (e) {
-      setState(() {
-        final message = e.message.toLowerCase();
-        if (message.contains('invalid credentials')) {
-          _error = 'Email ou mot de passe incorrect.';
-        } else if (message.contains('email not confirmed')) {
-          _error = 'Compte non confirmé. Vérifie tes emails.';
-        } else {
-          _error = e.message;
-        }
-      });
+      if (mounted) {
+        setState(() {
+          final message = e.message.toLowerCase();
+          if (message.contains('invalid credentials')) {
+            _error = 'Email ou mot de passe incorrect.';
+          } else if (message.contains('email not confirmed')) {
+            _error = 'Compte non confirmé. Vérifie tes emails.';
+          } else {
+            _error = e.message;
+          }
+        });
+      }
     } catch (_) {
-      setState(() => _error = "Erreur inattendue. Réessaie.");
+      if (mounted) setState(() => _error = "Erreur inattendue. Réessaie.");
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  // Méthode pour naviguer vers l'écran de création de compte
   void _goToSignUp() {
     Navigator.of(context).pushNamed('/signup');
   }
@@ -146,8 +154,6 @@ class _SignInScreenState extends State<SignInScreen> {
                           validator: (v) {
                             final value = v ?? '';
                             if (value.isEmpty) return 'Mot de passe requis';
-                            // Correction de la validation : 8 caractères
-                            //if (value.length < 8) return 'Au moins 8 caractères';
                             return null;
                           },
                           onFieldSubmitted: (_) => _submit(),
@@ -177,7 +183,6 @@ class _SignInScreenState extends State<SignInScreen> {
                           children: [
                             const Text("Nouveau ?"),
                             TextButton(
-                              // Correction: navigue vers la page de création de compte
                               onPressed: disabled ? null : _goToSignUp,
                               child: const Text("Créer un compte"),
                             ),

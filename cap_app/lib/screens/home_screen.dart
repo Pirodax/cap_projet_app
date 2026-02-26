@@ -7,7 +7,8 @@ import '../widgets/Search_Bar.dart';
 import 'category_details_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final CategoryService? categoryService;
+  const HomeScreen({super.key, this.categoryService});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -18,27 +19,24 @@ class _HomeScreenState extends State<HomeScreen> {
   final _focusNode = FocusNode();
   bool _isSearching = false;
 
-  final CategoryService _categoryService = CategoryService();
+  late final CategoryService _categoryService;
   late Future<List<Map<String, dynamic>>> _categoriesFuture;
   List<Map<String, dynamic>> _allCategories = [];
   List<Map<String, dynamic>> _filteredCategories = [];
 
-  // Données locales pour les articles, conservées telles quelles.
   final List<Map<String, dynamic>> _articles = [
     {'title': 'Nouvelles mesures de remboursement', 'subtitle': 'Découvrez les changements pour 2024...', 'icon': Icons.article},
     {'title': 'Campagne de prévention grippe', 'subtitle': 'Pensez à vous faire vacciner...', 'icon': Icons.campaign},
-    // ... reste des articles
   ];
 
   @override
   void initState() {
     super.initState();
+    _categoryService = widget.categoryService ?? CategoryService();
     _categoriesFuture = _categoryService.getCategories();
     _focusNode.addListener(_handleFocusChange);
     _searchController.addListener(_handleSearchChange);
   }
-
-  // Le reste des méthodes initState, dispose, etc. reste inchangé...
 
   void _handleFocusChange() {
     if (_focusNode.hasFocus != _isSearching) {
@@ -55,7 +53,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ? []
           : _allCategories
           .where((category) {
-        // ✅ CORRIGÉ: Utiliser 'name' au lieu de 'nom'
         final categoryName = (category['name'] as String? ?? '').toLowerCase();
         return categoryName.contains(query);
       })
@@ -74,7 +71,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _clearSearch() => _searchController.clear();
 
-  // Fonction pour générer une couleur aléatoire pour les catégories
   Color _getRandomColor() {
     final List<Color> presetColors = [
       Colors.blue.shade300, Colors.green.shade300, Colors.orange.shade300,
@@ -109,7 +105,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildMainContent(double topPadding) {
-    // ... Le contenu principal (Titre, etc.) reste identique
     return ListView(
       padding: EdgeInsets.zero,
       children: [
@@ -147,17 +142,22 @@ class _HomeScreenState extends State<HomeScreen> {
       future: _categoriesFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const SizedBox(height: 140, child: Center(child: CircularProgressIndicator()));
         }
         if (snapshot.hasError) {
-          return Center(child: Text('Erreur: ${snapshot.error}'));
+          return Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Text('Erreur: ${snapshot.error}'),
+          );
         }
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(child: Text('Aucune catégorie trouvée.'));
+          return const Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Text('Aucune catégorie trouvée.'),
+          );
         }
         _allCategories = snapshot.data!;
 
-        // La section horizontale est maintenant construite avec les données de la DB
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -176,7 +176,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 itemCount: _allCategories.length,
                 itemBuilder: (context, index) {
                   final item = _allCategories[index];
-                  // ✅ CORRIGÉ: Utiliser 'name' pour le titre et 'icon' pour l'emoji
                   final title = item['name'] as String? ?? 'Sans nom';
                   final iconString = item['icon'] as String? ?? '❓';
 
@@ -189,6 +188,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             categoryId: item['id'] as int,
                             categoryName: title,
                             categoryIcon: iconString,
+                            categoryService: _categoryService, // ✅ PASSAGE DU SERVICE ICI
                           ),
                         ),
                       );
@@ -197,17 +197,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       width: 120,
                       margin: const EdgeInsets.only(right: 15),
                       decoration: BoxDecoration(
-                        color: _getRandomColor(), // Utilise une couleur aléatoire prédéfinie
+                        color: _getRandomColor(),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          // ✅ CORRIGÉ: Utiliser un Widget Text pour afficher l'emoji
-                          Text(
-                            iconString,
-                            style: const TextStyle(fontSize: 40),
-                          ),
+                          Text(iconString, style: const TextStyle(fontSize: 40)),
                           const SizedBox(height: 10),
                           Text(
                             title,
@@ -227,7 +223,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // La méthode _buildNewsSection() reste inchangée
   Widget _buildNewsSection() {
     return Padding(
       padding: const EdgeInsets.all(20.0),
@@ -245,16 +240,14 @@ class _HomeScreenState extends State<HomeScreen> {
             itemCount: _articles.length,
             itemBuilder: (context, index) {
               final article = _articles[index];
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 5),
-                child: Card(
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                  child: ListTile(
-                    leading: Icon(article['icon'] as IconData),
-                    title: Text(article['title'] as String),
-                    subtitle: Text(article['subtitle'] as String),
-                  ),
+              return Card(
+                margin: const EdgeInsets.only(bottom: 10),
+                elevation: 2,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                child: ListTile(
+                  leading: Icon(article['icon'] as IconData),
+                  title: Text(article['title'] as String),
+                  subtitle: Text(article['subtitle'] as String),
                 ),
               );
             },
@@ -283,17 +276,12 @@ class _HomeScreenState extends State<HomeScreen> {
             itemCount: _filteredCategories.length,
             itemBuilder: (context, index) {
               final category = _filteredCategories[index];
-              // ✅ CORRIGÉ: Utiliser 'name' et 'icon'
               final categoryName = category['name'] as String? ?? 'Sans nom';
               final categoryIcon = category['icon'] as String? ?? '❓';
 
               return ListTile(
-                // ✅ CORRIGÉ: Afficher l'emoji dans un Text
                 leading: Text(categoryIcon, style: const TextStyle(fontSize: 24)),
-                title: Text(
-                  categoryName,
-                  style: const TextStyle(color: Colors.white),
-                ),
+                title: Text(categoryName, style: const TextStyle(color: Colors.white)),
                 onTap: () {
                   Navigator.push(
                     context,
@@ -302,6 +290,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         categoryId: category['id'] as int,
                         categoryName: categoryName,
                         categoryIcon: categoryIcon,
+                        categoryService: _categoryService, // ✅ PASSAGE DU SERVICE ICI AUSSI
                       ),
                     ),
                   );
