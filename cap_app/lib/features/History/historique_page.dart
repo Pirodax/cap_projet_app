@@ -417,14 +417,14 @@ class _HistoriquePageState extends State<HistoriquePage>
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.purple[400]!, Colors.purple[600]!],
+            colors: [Colors.teal.shade400, Colors.teal],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.purple.withValues(alpha: 0.3),
+              color: Colors.teal.withValues(alpha: 0.3),
               blurRadius: 15,
               offset: const Offset(0, 8),
             ),
@@ -520,12 +520,12 @@ class _HistoriquePageState extends State<HistoriquePage>
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.purple[50],
+                      color: Colors.teal.shade50,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
                       Icons.pie_chart_rounded,
-                      color: Colors.purple[600],
+                      color: Colors.teal,
                       size: 28,
                     ),
                   ),
@@ -561,7 +561,7 @@ class _HistoriquePageState extends State<HistoriquePage>
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.purple[50],
+                  color: Colors.teal.shade50,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -574,7 +574,7 @@ class _HistoriquePageState extends State<HistoriquePage>
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
-                            color: Colors.purple[700],
+                            color: Colors.teal.shade700,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -599,7 +599,7 @@ class _HistoriquePageState extends State<HistoriquePage>
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
-                            color: Colors.purple[700],
+                            color: Colors.teal.shade700,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -765,7 +765,7 @@ class _HistoriquePageState extends State<HistoriquePage>
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(context),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple[600],
+                    backgroundColor: Colors.teal,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -842,7 +842,7 @@ class _HistoriquePageState extends State<HistoriquePage>
                     Icons.calendar_today,
                     size: 14,
                     color: isSelected
-                        ? Colors.orange[700]
+                        ? Colors.teal
                         : Colors.grey[600],
                   ),
                   const SizedBox(width: 6),
@@ -854,16 +854,16 @@ class _HistoriquePageState extends State<HistoriquePage>
                 setState(() => _selectedPeriod = period);
               },
               backgroundColor: Colors.white,
-              selectedColor: Colors.orange[100],
+              selectedColor: Colors.teal.shade50,
               labelStyle: TextStyle(
                 fontSize: 13,
                 color:
-                    isSelected ? Colors.orange[700] : Colors.grey[700],
+                    isSelected ? Colors.teal : Colors.grey[700],
                 fontWeight:
                     isSelected ? FontWeight.w600 : FontWeight.normal,
               ),
               side: BorderSide(
-                color: isSelected ? Colors.orange : Colors.grey[300]!,
+                color: isSelected ? Colors.teal : Colors.grey[300]!,
               ),
             ),
           );
@@ -893,15 +893,15 @@ class _HistoriquePageState extends State<HistoriquePage>
                 setState(() => _selectedCategory = category);
               },
               backgroundColor: Colors.white,
-              selectedColor: Colors.blue[100],
+              selectedColor: Colors.teal.shade50,
               labelStyle: TextStyle(
                 fontSize: 13,
-                color: isSelected ? Colors.blue[700] : Colors.grey[700],
+                color: isSelected ? Colors.teal : Colors.grey[700],
                 fontWeight:
                     isSelected ? FontWeight.w600 : FontWeight.normal,
               ),
               side: BorderSide(
-                color: isSelected ? Colors.blue : Colors.grey[300]!,
+                color: isSelected ? Colors.teal : Colors.grey[300]!,
                 width: isSelected ? 2 : 1,
               ),
             ),
@@ -1092,19 +1092,19 @@ class _HistoriquePageState extends State<HistoriquePage>
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.blue[50],
+                  color: Colors.teal.shade50,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline, color: Colors.blue[700]),
+                    Icon(Icons.info_outline, color: Colors.teal),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         'Consultez un soin pour lancer une simulation.',
                         style: TextStyle(
                           fontSize: 13,
-                          color: Colors.blue[700],
+                          color: Colors.teal,
                         ),
                       ),
                     ),
@@ -1404,20 +1404,20 @@ class _HistoriquePageState extends State<HistoriquePage>
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.blue[50],
+                    color: Colors.teal.shade50,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     children: [
                       Icon(Icons.info_outline,
-                          color: Colors.blue[700]),
+                          color: Colors.teal),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           'Ceci est une estimation. Les remboursements réels peuvent varier.',
                           style: TextStyle(
                             fontSize: 13,
-                            color: Colors.blue[700],
+                            color: Colors.teal,
                           ),
                         ),
                       ),
