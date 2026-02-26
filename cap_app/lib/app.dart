@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'features/auth/screens/sign_in_screen.dart';
-// J'ajoute un préfixe 'auth' pour résoudre l'ambiguïté
 import 'features/auth/screens/sign_up_screen.dart' as auth;
 import 'screens/home_screen.dart';
 import 'screens/profile_screen.dart';
@@ -14,10 +13,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Cap projet App',
+      title: 'Cap Projet App',
       theme: ThemeData(
         primarySwatch: Colors.indigo,
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
         useMaterial3: true,
         inputDecorationTheme: InputDecorationTheme(
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -50,9 +49,7 @@ class _MainPageState extends State<MainPage> {
   int _selectedIndex = 0;
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    setState(() => _selectedIndex = index);
   }
 
   @override

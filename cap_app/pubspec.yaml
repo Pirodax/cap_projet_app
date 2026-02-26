@@ -14,13 +14,16 @@ dependencies:
   # Les versions sont mises à jour pour permettre les dernières fonctionnalités
   supabase_flutter: ^2.10.3
   cupertino_icons: ^1.0.8
+  google_fonts: ^6.2.0
+  intl: ^0.20.2
+  firebase_core: ^4.4.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  # Mise à jour vers la dernière version de lints
-  flutter_lints: ^6.0.0
+  # Version compatible avec Dart 3.6.2
+  flutter_lints: ^5.0.0
 
 flutter:
   uses-material-design: true
