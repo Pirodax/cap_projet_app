@@ -113,27 +113,16 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: const Color(0xFFF5F7FA), // Fond gris clair comme ProfileScreen
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: const Color(0xFFF5F7FA),
+        surfaceTintColor: Colors.transparent,
+        scrolledUnderElevation: 0,
         elevation: 0,
         // On garde la SearchBar dans l'AppBar pour qu'elle reste fixe
-        title: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(15),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Search_Bar(
-            textController: _searchController,
-            hintText: 'Rechercher un soin, une catégorie...',
-            focusNode: _focusNode,
-            onClear: _clearSearch,
-          ),
+        title: Search_Bar(
+          textController: _searchController,
+          hintText: 'Rechercher un soin, une catégorie...',
+          focusNode: _focusNode,
+          onClear: _clearSearch,
         ),
       ),
       body: Stack(

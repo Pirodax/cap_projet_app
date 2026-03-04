@@ -15,8 +15,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Cap Projet App',
       theme: ThemeData(
-        primarySwatch: Colors.indigo,
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
         useMaterial3: true,
         inputDecorationTheme: InputDecorationTheme(
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -61,6 +60,7 @@ class _MainPageState extends State<MainPage> {
     ];
 
     return Scaffold(
+      extendBody: true,
       body: IndexedStack(
         index: _selectedIndex,
         children: pages,
