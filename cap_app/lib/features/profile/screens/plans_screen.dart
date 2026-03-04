@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../widgets/search_bar.dart';
+import '../../../widgets/search_bar.dart';
 
 class PlansScreen extends StatefulWidget {
   final String mutuelleName;

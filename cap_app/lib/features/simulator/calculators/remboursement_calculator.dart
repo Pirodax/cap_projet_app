@@ -1,15 +1,21 @@
-// services/remboursement_calculator.dart
-
 import '../models/remboursement_info.dart';
+import '../models/remboursement_result.dart';
 
-/// Service de calcul des remboursements de soins médicaux
-/// Gère les calculs selon les règles de la Sécurité sociale et des mutuelles
 class RemboursementCalculator {
-  /// Calcule le remboursement complet pour un soin
   static RemboursementResult calculer(RemboursementInfo info) {
     // 1. Déterminer si le praticien est conventionné
     final bool estConventionne = info.prixFacture <= info.brss;
-    final double montantDepassement = estConventionne ? 0 : info.prixFacture - info.brss;
+    final double montantDepassement = info.prixFacture > info.brss ? info.prixFacture - info.brss : 0;
+
+    double totalAutoriseMutuelle = 0;
+
+    if (info.typeMutuelle == 'pourcentage') {
+      final double taux = estConventionne
+          ? (info.tauxMutuelleConventionne ?? 0)
+          : (info.tauxMutuelleNonConventionne ?? 0);
+
+      totalAutoriseMutuelle = info.brss * (taux / 100);
+    }
 
     // 2. Calculer le remboursement Sécurité sociale
     double remboursementSecu = info.brss * (info.tauxSecu / 100);
@@ -22,10 +28,22 @@ class RemboursementCalculator {
     if (remboursementSecu < 0) remboursementSecu = 0;
 
     // 5. Calculer le remboursement Mutuelle selon le type
-    final double remboursementMutuelle = _calculerRemboursementMutuelle(
+    double remboursementMutuelle = _calculerRemboursementMutuelle(
       info: info,
       estConventionne: estConventionne,
     );
+
+    // Cas mutuelle en pourcentage : le taux représente le TOTAL autorisé
+    if (info.typeMutuelle == 'pourcentage') {
+      remboursementMutuelle = remboursementMutuelle - remboursementSecu;
+      if (remboursementMutuelle < 0) remboursementMutuelle = 0;
+    }
+
+    final double maxRemboursable = info.prixFacture - remboursementSecu;
+
+    if (remboursementMutuelle > maxRemboursable) {
+      remboursementMutuelle = maxRemboursable < 0 ? 0 : maxRemboursable;
+    }
 
     // 6. Calculer le total remboursé et le reste à charge
     final double totalRembourse = remboursementSecu + remboursementMutuelle;
@@ -34,6 +52,7 @@ class RemboursementCalculator {
 
     return RemboursementResult(
       remboursementSecu: remboursementSecu,
+      totalAutoriseMutuelle: totalAutoriseMutuelle,
       remboursementMutuelle: remboursementMutuelle,
       participationForfaitaire: participationForfaitaire,
       totalRembourse: totalRembourse,
@@ -43,7 +62,6 @@ class RemboursementCalculator {
     );
   }
 
-  /// Calcule le remboursement de la mutuelle selon le type
   static double _calculerRemboursementMutuelle({
     required RemboursementInfo info,
     required bool estConventionne,
@@ -75,7 +93,6 @@ class RemboursementCalculator {
     }
   }
 
-  /// Retourne le label de la mutuelle pour l'affichage
   static String getLabelMutuelle({
     required String typeMutuelle,
     required bool estConventionne,
@@ -92,12 +109,5 @@ class RemboursementCalculator {
           : (tauxNonConventionne ?? 0);
       return 'Mutuelle (${taux.toStringAsFixed(0)}%)';
     }
-  }
-
-  /// Retourne la couleur pour le reste à charge
-  static String getCouleurRAC(double resteACharge, double prixFacture) {
-    if (resteACharge == 0) return 'green';
-    if (resteACharge < prixFacture * 0.20) return 'orange';
-    return 'red';
   }
 }

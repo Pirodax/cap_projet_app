@@ -1,186 +1,11 @@
-// soin_detail_screen.dart
-// Version tout-en-un avec models et calculator intégrés
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../services/simulation_history_service.dart';
+import '../../history/services/simulation_history_service.dart';
 
-// ============================================
-// MODELS
-// ============================================
-
-/// Modèle contenant toutes les informations nécessaires pour calculer un remboursement
-class RemboursementInfo {
-  final double brss;
-  final double tauxSecu;
-  final String typeMutuelle;
-  final double? tauxMutuelleConventionne;
-  final double? tauxMutuelleNonConventionne;
-  final double? forfaitConventionne;
-  final double? forfaitNonConventionne;
-  final bool isMajeur;
-  final double prixFacture;
-
-  RemboursementInfo({
-    required this.brss,
-    required this.tauxSecu,
-    required this.typeMutuelle,
-    this.tauxMutuelleConventionne,
-    this.tauxMutuelleNonConventionne,
-    this.forfaitConventionne,
-    this.forfaitNonConventionne,
-    required this.isMajeur,
-    required this.prixFacture,
-  });
-}
-
-/// Résultat d'un calcul de remboursement
-class RemboursementResult {
-  final double remboursementSecu;
-  final double totalAutoriseMutuelle;
-  final double remboursementMutuelle;
-  final double participationForfaitaire;
-  final double totalRembourse;
-  final double resteACharge;
-  final double montantDepassement;
-  final bool estConventionne;
-
-  RemboursementResult({
-    required this.remboursementSecu,
-    required this.totalAutoriseMutuelle,
-    required this.remboursementMutuelle,
-    required this.participationForfaitaire,
-    required this.totalRembourse,
-    required this.resteACharge,
-    required this.montantDepassement,
-    required this.estConventionne,
-  });
-
-  double get pourcentagePriseEnCharge {
-    if (resteACharge == 0) return 100.0;
-    return (totalRembourse / (resteACharge + totalRembourse)) * 100;
-  }
-}
-
-// ============================================
-// CALCULATOR
-// ============================================
-
-class RemboursementCalculator {
-  static RemboursementResult calculer(RemboursementInfo info) {
-    // 1. Déterminer si le praticien est conventionné
-    final bool estConventionne = info.prixFacture <= info.brss;
-    final double montantDepassement = info.prixFacture > info.brss ? info.prixFacture - info.brss : 0;
-
-    double totalAutoriseMutuelle = 0;
-
-    if (info.typeMutuelle == 'pourcentage') {
-      final double taux = estConventionne
-          ? (info.tauxMutuelleConventionne ?? 0)
-          : (info.tauxMutuelleNonConventionne ?? 0);
-
-      totalAutoriseMutuelle = info.brss * (taux / 100);
-    }
-
-    // 2. Calculer le remboursement Sécurité sociale
-    double remboursementSecu = info.brss * (info.tauxSecu / 100);
-
-    // 3. Calculer la participation forfaitaire (1€ si majeur)
-    final double participationForfaitaire = info.isMajeur ? 1.00 : 0.00;
-
-    // 4. Déduire la participation forfaitaire du remboursement Sécu
-    remboursementSecu = remboursementSecu - participationForfaitaire;
-    if (remboursementSecu < 0) remboursementSecu = 0;
-
-    // 5. Calculer le remboursement Mutuelle selon le type
-    double remboursementMutuelle = _calculerRemboursementMutuelle(
-      info: info,
-      estConventionne: estConventionne,
-    );
-
-    // Cas mutuelle en pourcentage : le taux représente le TOTAL autorisé
-    if (info.typeMutuelle == 'pourcentage') {
-      remboursementMutuelle = remboursementMutuelle - remboursementSecu;
-      if (remboursementMutuelle < 0) remboursementMutuelle = 0;
-    }
-
-    final double maxRemboursable = info.prixFacture - remboursementSecu;
-
-    if (remboursementMutuelle > maxRemboursable) {
-      remboursementMutuelle = maxRemboursable < 0 ? 0 : maxRemboursable;
-    }
-
-    // 6. Calculer le total remboursé et le reste à charge
-    final double totalRembourse = remboursementSecu + remboursementMutuelle;
-    double resteACharge = info.prixFacture - totalRembourse;
-    if (resteACharge < 0) resteACharge = 0;
-
-    return RemboursementResult(
-      remboursementSecu: remboursementSecu,
-      totalAutoriseMutuelle: totalAutoriseMutuelle,
-      remboursementMutuelle: remboursementMutuelle,
-      participationForfaitaire: participationForfaitaire,
-      totalRembourse: totalRembourse,
-      resteACharge: resteACharge,
-      montantDepassement: montantDepassement,
-      estConventionne: estConventionne,
-    );
-  }
-
-  static double _calculerRemboursementMutuelle({
-    required RemboursementInfo info,
-    required bool estConventionne,
-  }) {
-    switch (info.typeMutuelle) {
-      case 'pourcentage':
-        final double taux = estConventionne
-            ? (info.tauxMutuelleConventionne ?? 0)
-            : (info.tauxMutuelleNonConventionne ?? 0);
-        return info.brss * (taux / 100);
-
-      case 'forfait':
-        final double forfait = estConventionne
-            ? (info.forfaitConventionne ?? 0)
-            : (info.forfaitNonConventionne ?? 0);
-        return forfait;
-
-      case 'forfait_annuel':
-        final double taux = estConventionne
-            ? (info.tauxMutuelleConventionne ?? 0)
-            : (info.tauxMutuelleNonConventionne ?? 0);
-        final double forfait = estConventionne
-            ? (info.forfaitConventionne ?? 0)
-            : (info.forfaitNonConventionne ?? 0);
-        return (info.brss * (taux / 100)) + forfait;
-
-      default:
-        return 0;
-    }
-  }
-
-  static String getLabelMutuelle({
-    required String typeMutuelle,
-    required bool estConventionne,
-    double? tauxConventionne,
-    double? tauxNonConventionne,
-  }) {
-    if (typeMutuelle == 'forfait') {
-      return 'Mutuelle (forfait)';
-    } else if (typeMutuelle == 'forfait_annuel') {
-      return 'Mutuelle (% + forfait)';
-    } else {
-      final double taux = estConventionne
-          ? (tauxConventionne ?? 0)
-          : (tauxNonConventionne ?? 0);
-      return 'Mutuelle (${taux.toStringAsFixed(0)}%)';
-    }
-  }
-}
-
-// ============================================
-// SCREEN
-// ============================================
+import '../models/remboursement_info.dart';
+import '../models/remboursement_result.dart';
+import '../calculators/remboursement_calculator.dart';
+import '../services/soin_service.dart';
 
 class SoinDetailScreen extends StatefulWidget {
   final int soinId;
@@ -195,7 +20,7 @@ class SoinDetailScreen extends StatefulWidget {
 }
 
 class _SoinDetailScreenState extends State<SoinDetailScreen> {
-  final _supabase = Supabase.instance.client;
+  final SoinService _soinService = SoinService();
   final TextEditingController _prixController = TextEditingController();
 
   bool _isLoading = true;
@@ -257,18 +82,9 @@ class _SoinDetailScreenState extends State<SoinDetailScreen> {
         _errorMessage = null;
       });
 
-      final userId = _supabase.auth.currentUser?.id;
-      if (userId == null) {
-        throw Exception('Utilisateur non connecté');
-      }
-
-      final userInfoResponse = await _supabase
-          .from('user_infos')
-          .select('mutuelle_formule_id, regime_assurance_maladie_id, date_of_birth')
-          .eq('user_id', userId)
-          .maybeSingle();
-
-      if (userInfoResponse == null || userInfoResponse['mutuelle_formule_id'] == null) {
+      // 1. Vérifier le profil via le service
+      final userProfile = await _soinService.getUserProfile();
+      if (userProfile == null) {
         setState(() {
           _profilComplet = false;
           _isLoading = false;
@@ -276,23 +92,14 @@ class _SoinDetailScreenState extends State<SoinDetailScreen> {
         return;
       }
 
-      final int formuleId = userInfoResponse['mutuelle_formule_id'];
-      final int regimeId = userInfoResponse['regime_assurance_maladie_id'] ?? 8;
+      final int formuleId = userProfile['mutuelle_formule_id'];
+      final int regimeId = userProfile['regime_assurance_maladie_id'] ?? 8;
+      _isMajeur = _soinService.calculerIsMajeur(userProfile['date_of_birth']);
 
-      if (userInfoResponse['date_of_birth'] != null) {
-        final dateOfBirth = DateTime.parse(userInfoResponse['date_of_birth']);
-        final today = DateTime.now();
-        int age = today.year - dateOfBirth.year;
-        if (today.month < dateOfBirth.month ||
-            (today.month == dateOfBirth.month && today.day < dateOfBirth.day)) {
-          age--;
-        }
-        _isMajeur = age >= 18;
-      }
-
-      final soinResponse = await _supabase.from('soins').select('*, categories_soins(name)').eq('id', widget.soinId).single();
-      final secuResponse = await _supabase.from('assurance_maladie_remboursements').select('*').eq('soins_id', widget.soinId).eq('regimes_id', regimeId).maybeSingle();
-      final mutuelleResponse = await _supabase.from('mutuelle_remboursements').select('*').eq('soins_id', widget.soinId).eq('formule_id', formuleId).maybeSingle();
+      // 2. Charger les données via le service
+      final soinResponse = await _soinService.getSoin(widget.soinId);
+      final secuResponse = await _soinService.getRemboursementSecu(widget.soinId, regimeId);
+      final mutuelleResponse = await _soinService.getRemboursementMutuelle(widget.soinId, formuleId);
 
       if (secuResponse == null) {
         throw Exception('Remboursement Sécurité sociale introuvable\n\nSoin ID: ${widget.soinId}\nRégime ID: $regimeId');
@@ -302,11 +109,7 @@ class _SoinDetailScreenState extends State<SoinDetailScreen> {
         throw Exception('Remboursement Mutuelle introuvable\n\nSoin ID: ${widget.soinId}\nFormule ID: $formuleId');
       }
 
-      // Extract category name from joined data
-      final categoriesData = soinResponse['categories_soins'];
-      if (categoriesData != null && categoriesData is Map) {
-        _categorieName = categoriesData['name'] as String?;
-      }
+      _categorieName = _soinService.extractCategorieName(soinResponse);
 
       setState(() {
         _soinData = soinResponse;
@@ -695,17 +498,13 @@ class _SoinDetailScreenState extends State<SoinDetailScreen> {
           _buildResultRow(_getLabelMutuelle(), '${_result!.remboursementMutuelle.toStringAsFixed(2)}€', false),
           const Divider(color: Colors.white24, thickness: 2),
           const SizedBox(height: 20),
-          _buildResultRow('Total Remboursable', '${_result!.totalAutoriseMutuelle.toStringAsFixed(2)}€', false,),
+          _buildResultRow('Total Remboursable', '${_result!.totalAutoriseMutuelle.toStringAsFixed(2)}€', false),
           const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.only(left: 16),
             child: Text(
               'Calculé sur la BRSS (${_brss.toStringAsFixed(2)}€ × ${_getTauxMutuelle().toStringAsFixed(0)}%)',
-              style: const TextStyle(
-                fontSize: 12,
-                fontStyle: FontStyle.italic,
-                color: Colors.white70,
-              ),
+              style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.white70),
             ),
           ),
           const SizedBox(height: 40),
@@ -839,18 +638,18 @@ class _SoinDetailScreenState extends State<SoinDetailScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(color: const Color(0xFFEEF2FF), borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0xFF4F46E5).withOpacity(0.2))),
-                  child: Column(
+                  child: const Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.lightbulb_outline, color: Color(0xFF4F46E5), size: 20),
-                          const SizedBox(width: 8),
-                          const Text('Exemple pratique', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF4F46E5))),
+                          Icon(Icons.lightbulb_outline, color: Color(0xFF4F46E5), size: 20),
+                          SizedBox(width: 8),
+                          Text('Exemple pratique', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF4F46E5))),
                         ],
                       ),
-                      const SizedBox(height: 12),
-                      const Text(
+                      SizedBox(height: 12),
+                      Text(
                         'Consultation spécialiste à 60€ (majeur)\n'
                             '• BRSS : 31,50€\n'
                             '• Taux Sécu : 70%\n'
@@ -862,8 +661,7 @@ class _SoinDetailScreenState extends State<SoinDetailScreen> {
                             '• Total autorisé (mutuelle 110%) : 34,65€\n'
                             '• Mutuelle : 34,65€ − 21,05€ = 13,60€\n\n'
                             '• Total remboursé : 34,65€\n'
-                            '• Reste à charge : 60€ − 34,65€ = 25,35€'
-                        ,
+                            '• Reste à charge : 60€ − 34,65€ = 25,35€',
                         style: TextStyle(fontSize: 12, color: Color(0xFF4F46E5), height: 1.6),
                       ),
                     ],
@@ -945,9 +743,7 @@ class _SoinDetailScreenState extends State<SoinDetailScreen> {
   double _getTauxMutuelle() {
     if (_result == null || _remboursementMutuelle == null) return 0;
 
-    final bool estConventionne = _result!.estConventionne;
-
-    return estConventionne
+    return _result!.estConventionne
         ? ((_remboursementMutuelle!['taux_mutuelle_conventionne'] as num?)?.toDouble() ?? 0)
         : ((_remboursementMutuelle!['taux_mutuelle_non_conventionne'] as num?)?.toDouble() ?? 0);
   }

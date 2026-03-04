@@ -2,9 +2,9 @@ import 'dart:ui';
 
 import '../services/category_service.dart';
 import 'package:flutter/material.dart';
-import '../widgets/Search_Bar.dart';
+import '../../../widgets/Search_Bar.dart';
 import 'category_details_screen.dart';
-import 'soin_detail_screen.dart';
+import '../../simulator/screens/soin_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
