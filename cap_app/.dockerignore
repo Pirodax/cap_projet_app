@@ -1,0 +1,11 @@
+.dart_tool/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+node_modules/
+.idea/
+.vscode/
+.claude/
+.playwright-mcp/
+*.iml
