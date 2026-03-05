@@ -1,0 +1,154 @@
+@startuml Cap Projet App - Diagramme de Packages
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontSize 11
+skinparam linetype ortho
+
+title Diagramme de Packages — Cap Projet App
+
+' ============================================================
+' TOP LEVEL
+' ============================================================
+package "cap_app" {
+
+  ' --- Couche Présentation ---
+  package "lib" {
+
+    package "app.dart" <<Frame>> #E3F2FD {
+      [MyApp - Routes & Theme]
+      [MainPage - IndexedStack]
+    }
+
+    package "features" #FFFDE7 {
+
+      package "auth" {
+        package "screens" as auth_screens {
+          [SignInScreen]
+          [SignUpScreen]
+        }
+      }
+
+      package "Home" {
+        package "models" as home_models {
+          [RemboursementInfo]
+          [RemboursementResult]
+        }
+        package "services" as home_services {
+          [RemboursementCalculator]
+        }
+        package "screens" as home_screens_feat {
+          [PlansScreen]
+          [PageSimu]
+        }
+      }
+
+      package "History" {
+        [HistoriquePage]
+      }
+    }
+
+    package "screens" #E8EAF6 {
+      [HomeScreen]
+      [ProfileScreen]
+      [CategoryDetailsScreen]
+      [SoinDetailScreen]
+    }
+
+    package "models" as shared_models #FFF8E1 {
+      [SimulationHistory]
+    }
+
+    package "services" as shared_services #E8F5E9 {
+      [CategoryService]
+      [SimulationHistoryService]
+      [ProfileService]
+    }
+
+    package "widgets" #ECEFF1 {
+      [BottomNavBar]
+      [Search_Bar]
+    }
+
+    package "core" #F0F8FF {
+      package "supabase" {
+        [SupabaseInit]
+      }
+    }
+  }
+}
+
+' ============================================================
+' EXTERNAL PACKAGES
+' ============================================================
+package "External" #F5F5F5 {
+  package "supabase_flutter" as sup_pkg {
+    [SupabaseClient]
+    [Auth]
+  }
+  package "firebase_core" as fb_pkg {
+    [Firebase]
+  }
+  package "google_fonts" as gf_pkg {
+    [GoogleFonts]
+  }
+  package "intl" as intl_pkg {
+    [DateFormat]
+  }
+  package "flutter/material" as flutter_pkg {
+    [Material Widgets]
+  }
+}
+
+' ============================================================
+' EXTERNAL SERVICES
+' ============================================================
+package "Cloud Services" #FFEBEE {
+  [Supabase Cloud\n(PostgreSQL + Auth + RLS)]
+  [Firebase Hosting\n(CDN + HTTPS)]
+}
+
+' ============================================================
+' DEPENDENCIES
+' ============================================================
+
+' --- app.dart imports ---
+[MyApp - Routes & Theme] --> auth_screens
+[MyApp - Routes & Theme] --> [MainPage - IndexedStack]
+[MainPage - IndexedStack] --> [HomeScreen]
+[MainPage - IndexedStack] --> [HistoriquePage]
+[MainPage - IndexedStack] --> [ProfileScreen]
+[MainPage - IndexedStack] --> [BottomNavBar]
+
+' --- screens → services ---
+[HomeScreen] --> [CategoryService]
+[HomeScreen] --> [Search_Bar]
+[ProfileScreen] --> [ProfileService]
+[SoinDetailScreen] --> [RemboursementCalculator]
+[SoinDetailScreen] --> [SimulationHistoryService]
+[HistoriquePage] --> [SimulationHistoryService]
+[CategoryDetailsScreen] --> [CategoryService]
+
+' --- services → models ---
+[RemboursementCalculator] --> [RemboursementInfo]
+[RemboursementCalculator] --> [RemboursementResult]
+[SimulationHistoryService] --> [SimulationHistory]
+
+' --- services → core ---
+[CategoryService] --> [SupabaseInit]
+[SimulationHistoryService] --> [SupabaseInit]
+[ProfileService] --> [SupabaseInit]
+auth_screens --> [SupabaseInit]
+
+' --- core → external ---
+[SupabaseInit] --> [SupabaseClient]
+[SupabaseInit] --> [Firebase]
+
+' --- cloud ---
+[SupabaseClient] --> [Supabase Cloud\n(PostgreSQL + Auth + RLS)]
+[Firebase] --> [Firebase Hosting\n(CDN + HTTPS)]
+
+' --- flutter ---
+[MyApp - Routes & Theme] --> [Material Widgets]
+[BottomNavBar] --> [Material Widgets]
+
+@enduml

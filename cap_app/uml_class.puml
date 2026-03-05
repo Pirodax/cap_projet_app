@@ -1,0 +1,385 @@
+@startuml Cap Projet App - Diagramme de Classes
+skinparam classAttributeIconSize 0
+skinparam classFontSize 11
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam linetype ortho
+skinparam defaultFontSize 10
+
+title Diagramme de Classes — Cap Projet App
+
+' ============================================================
+' PACKAGE: Core
+' ============================================================
+package "core/supabase" #F0F8FF {
+  class SupabaseInit <<utility>> {
+    + {static} supabase : SupabaseClient
+    + {static} initSupabase() : Future<void>
+  }
+}
+
+' ============================================================
+' PACKAGE: Models
+' ============================================================
+package "features/Home/models" #FFF8E1 {
+  class RemboursementInfo {
+    + brss : double
+    + tauxSecu : double
+    + typeMutuelle : String
+    + tauxMutuelleConventionne : double?
+    + tauxMutuelleNonConventionne : double?
+    + forfaitConventionne : double?
+    + forfaitNonConventionne : double?
+    + isMajeur : bool
+    + prixFacture : double
+  }
+
+  class RemboursementResult {
+    + remboursementSecu : double
+    + remboursementMutuelle : double
+    + participationForfaitaire : double
+    + totalRembourse : double
+    + resteACharge : double
+    + montantDepassement : double
+    + estConventionne : bool
+    --
+    + pourcentagePriseEnCharge : double <<getter>>
+  }
+}
+
+package "models" #FFF8E1 {
+  class SimulationHistory {
+    + id : int
+    + soinName : String
+    + soinIcon : String?
+    + categorieName : String?
+    + prixFacture : double
+    + brss : double
+    + tauxSecu : double
+    + remboursementSecu : double
+    + remboursementMutuelle : double
+    + participationForfaitaire : double
+    + totalAutoriseMutuelle : double
+    + totalRembourse : double
+    + resteACharge : double
+    + montantDepassement : double
+    + estConventionne : bool
+    + createdAt : DateTime
+    --
+    + {static} fromJson(json: Map) : SimulationHistory
+    + pourcentagePriseEnCharge : double <<getter>>
+  }
+}
+
+package "screens (inner models)" #FFF8E1 {
+  class Mutuelle {
+    + id : int
+    + name : String
+  }
+
+  class Formule {
+    + id : int
+    + mutuelleId : int
+    + name : String
+  }
+
+  class Regime {
+    + id : int
+    + name : String
+  }
+}
+
+' ============================================================
+' PACKAGE: Services
+' ============================================================
+package "features/Home/services" #E8F5E9 {
+  class RemboursementCalculator <<service>> {
+    + {static} calculer(info: RemboursementInfo) : RemboursementResult
+    + {static} getLabelMutuelle(type, estConv, tauxConv, tauxNonConv) : String
+    + {static} getCouleurRAC(resteACharge, prixFacture) : String
+    - {static} _calculerRemboursementMutuelle(info, estConv) : double
+  }
+}
+
+package "services" #E8F5E9 {
+  class CategoryService {
+    + getCategories() : Future<List<Map>>
+    + getDetailSoins(categoryId: int) : Future<List<Map>>
+    + searchSoins(query: String) : Future<List<Map>>
+  }
+
+  class SimulationHistoryService {
+    - _supabase : SupabaseClient
+    --
+    + saveSimulation(...15 params) : Future<void>
+    + getSimulations() : Future<List<SimulationHistory>>
+    + deleteSimulation(id: int) : Future<void>
+  }
+
+  class ProfileService {
+    + supabase : SupabaseClient
+    --
+    + getMutuelles() : Future<List<Mutuelle>>
+    + getFormules() : Future<List<Formule>>
+    + getRegimes() : Future<List<Regime>>
+  }
+}
+
+' ============================================================
+' PACKAGE: App (routing & navigation)
+' ============================================================
+package "app" #E3F2FD {
+  class MyApp <<StatelessWidget>> {
+    + build(context) : Widget
+  }
+
+  class MainPage <<StatefulWidget>> {
+    + createState() : _MainPageState
+  }
+
+  class _MainPageState <<State>> {
+    - _selectedIndex : int
+    --
+    - _onItemTapped(index: int) : void
+    + build(context) : Widget
+  }
+}
+
+' ============================================================
+' PACKAGE: Auth Screens
+' ============================================================
+package "features/auth/screens" #FCE4EC {
+  class SignInScreen <<StatefulWidget>> {
+    + createState() : _SignInScreenState
+  }
+
+  class _SignInScreenState <<State>> {
+    - _emailCtrl : TextEditingController
+    - _pwdCtrl : TextEditingController
+    - _obscure : bool
+    - _loading : bool
+    - _error : String?
+    --
+    - _submit() : Future<void>
+    - _goToSignUp() : void
+    + build(context) : Widget
+  }
+
+  class SignUpScreen <<StatefulWidget>> {
+    + createState() : _SignUpScreenState
+  }
+
+  class _SignUpScreenState <<State>> {
+    - _emailCtrl : TextEditingController
+    - _pwdCtrl : TextEditingController
+    - _obscure : bool
+    - _loading : bool
+    - _error : String?
+    --
+    - _submit() : Future<void>
+    + build(context) : Widget
+  }
+
+  class _ErrorBanner <<StatelessWidget>> {
+    + message : String
+    + build(context) : Widget
+  }
+}
+
+' ============================================================
+' PACKAGE: Screens
+' ============================================================
+package "screens" #E8EAF6 {
+  class HomeScreen <<StatefulWidget>> {
+    + createState() : _HomeScreenState
+  }
+
+  class _HomeScreenState <<State>> {
+    - _searchController : TextEditingController
+    - _focusNode : FocusNode
+    - _isSearching : bool
+    - _categoryService : CategoryService
+    - _allCategories : List<Map>
+    - _filteredCategories : List<Map>
+    - _filteredSoins : List<Map>
+    --
+    - _handleSearchChange() : Future<void>
+    - _clearSearch() : void
+    + build(context) : Widget
+  }
+
+  class CategoryDetailsScreen <<StatefulWidget>> {
+    + categoryId : int
+    + categoryName : String
+    + categoryIcon : String
+    --
+    + createState() : _CategoryDetailsScreenState
+  }
+
+  class _CategoryDetailsScreenState <<State>> {
+    - _categoryService : CategoryService
+    - _detailSoinsFuture : Future<List<Map>>
+    --
+    + build(context) : Widget
+  }
+
+  class SoinDetailScreen <<StatefulWidget>> {
+    + soinId : int
+    --
+    + createState() : _SoinDetailScreenState
+  }
+
+  class _SoinDetailScreenState <<State>> {
+    - _supabase : SupabaseClient
+    - _prixController : TextEditingController
+    - _isLoading : bool
+    - _profilComplet : bool
+    - _soinData : Map?
+    - _prixFacture : double
+    - _brss : double
+    - _tauxSecu : double
+    - _result : RemboursementResult?
+    --
+    - _checkProfilAndLoadData() : Future<void>
+    - _calculerRemboursements() : void
+    - _saveToHistory() : void
+    + build(context) : Widget
+  }
+
+  class ProfileScreen <<StatefulWidget>> {
+    + createState() : _ProfileScreenState
+  }
+
+  class _ProfileScreenState <<State>> {
+    - _profileService : ProfileService
+    - _selectedMutuelleId : int?
+    - _selectedFormuleId : int?
+    - _selectedRegimeId : int?
+    - _allMutuelles : List<Mutuelle>
+    - _allFormules : List<Formule>
+    - _allRegimes : List<Regime>
+    - _loading : bool
+    --
+    - _loadInitialData() : Future<void>
+    - _saveProfile() : Future<void>
+    + build(context) : Widget
+  }
+}
+
+' ============================================================
+' PACKAGE: History
+' ============================================================
+package "features/History" #F3E5F5 {
+  class HistoriquePage <<StatefulWidget>> {
+    + isActive : bool
+    --
+    + createState() : _HistoriquePageState
+  }
+
+  class _HistoriquePageState <<State>> {
+    - _historyService : SimulationHistoryService
+    - _searchQuery : String
+    - _selectedCategory : String
+    - _selectedPeriod : String
+    - _sortBy : String
+    - _isLoading : bool
+    - _simulations : List<SimulationHistory>
+    --
+    - _loadData() : Future<void>
+    - _deleteSimulation(sim: SimulationHistory) : Future<void>
+    + build(context) : Widget
+  }
+}
+
+' ============================================================
+' PACKAGE: Widgets
+' ============================================================
+package "widgets" #ECEFF1 {
+  class BottomNavBar <<StatelessWidget>> {
+    + selectedIndex : int
+    + onItemTapped : Function(int)
+    --
+    + build(context) : Widget
+  }
+
+  class Search_Bar <<StatelessWidget>> {
+    + textController : TextEditingController
+    + hintText : String
+    + onClear : VoidCallback
+    + focusNode : FocusNode
+    --
+    + build(context) : Widget
+  }
+}
+
+' ============================================================
+' RELATIONS
+' ============================================================
+
+' --- App routing ---
+MyApp --> SignInScreen : routes "/"
+MyApp --> SignUpScreen : routes "/signup"
+MyApp --> MainPage : routes "/main"
+
+' --- MainPage composition ---
+MainPage +-- _MainPageState
+_MainPageState *--> HomeScreen : tab 0
+_MainPageState *--> HistoriquePage : tab 1
+_MainPageState *--> ProfileScreen : tab 2
+_MainPageState --> BottomNavBar : uses
+
+' --- Auth ---
+SignInScreen +-- _SignInScreenState
+SignUpScreen +-- _SignUpScreenState
+_SignInScreenState --> _ErrorBanner : uses
+_SignUpScreenState --> _ErrorBanner : uses
+_SignInScreenState ..> SupabaseInit : <<uses>>
+_SignUpScreenState ..> SupabaseInit : <<uses>>
+
+' --- Home ---
+HomeScreen +-- _HomeScreenState
+_HomeScreenState --> CategoryService : uses
+_HomeScreenState --> Search_Bar : uses
+_HomeScreenState ..> CategoryDetailsScreen : navigates
+_HomeScreenState ..> SoinDetailScreen : navigates
+
+' --- Category Details ---
+CategoryDetailsScreen +-- _CategoryDetailsScreenState
+_CategoryDetailsScreenState --> CategoryService : uses
+_CategoryDetailsScreenState ..> SoinDetailScreen : navigates
+
+' --- Soin Detail (simulateur) ---
+SoinDetailScreen +-- _SoinDetailScreenState
+_SoinDetailScreenState --> RemboursementCalculator : <<uses>>
+_SoinDetailScreenState --> SimulationHistoryService : saves to
+_SoinDetailScreenState ..> RemboursementInfo : creates
+_SoinDetailScreenState o-- RemboursementResult : holds
+
+' --- Calculator logic ---
+RemboursementCalculator ..> RemboursementInfo : input
+RemboursementCalculator ..> RemboursementResult : output
+
+' --- Profile ---
+ProfileScreen +-- _ProfileScreenState
+_ProfileScreenState --> ProfileService : uses
+ProfileService --> Mutuelle : fetches
+ProfileService --> Formule : fetches
+ProfileService --> Regime : fetches
+
+' --- History ---
+HistoriquePage +-- _HistoriquePageState
+_HistoriquePageState --> SimulationHistoryService : uses
+_HistoriquePageState o-- SimulationHistory : holds list
+
+' --- Services → Supabase ---
+CategoryService ..> SupabaseInit : <<uses>>
+SimulationHistoryService ..> SupabaseInit : <<uses>>
+ProfileService ..> SupabaseInit : <<uses>>
+
+' --- SimulationHistoryService → Model ---
+SimulationHistoryService --> SimulationHistory : creates via fromJson
+
+' --- Mutuelle → Formule FK ---
+Formule --> Mutuelle : mutuelleId (FK)
+
+@enduml

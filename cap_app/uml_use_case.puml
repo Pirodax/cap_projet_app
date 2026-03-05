@@ -1,0 +1,81 @@
+@startuml Cap Projet App - Diagramme de Cas d'Utilisation
+
+left to right direction
+skinparam actorStyle awesome
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontSize 12
+
+title Diagramme de Cas d'Utilisation — Cap Projet App
+
+actor "Utilisateur\n(non connecté)" as Guest
+actor "Utilisateur\n(connecté)" as User
+
+rectangle "Authentification" {
+  usecase "Se connecter\n(email + mot de passe)" as UC_Login
+  usecase "Créer un compte" as UC_Register
+}
+
+rectangle "Accueil & Navigation" {
+  usecase "Explorer les catégories\nde soins" as UC_Browse
+  usecase "Rechercher un soin" as UC_Search
+  usecase "Consulter les détails\nd'un soin" as UC_SoinDetail
+  usecase "Lire les actualités santé" as UC_Articles
+}
+
+rectangle "Simulateur de Remboursement" {
+  usecase "Saisir le prix facturé" as UC_InputPrice
+  usecase "Calculer le remboursement\n(Sécu + Mutuelle)" as UC_Calculate
+  usecase "Voir le détail du calcul\n(conventionné / non-conventionné)" as UC_DetailCalc
+  usecase "Sauvegarder la simulation\ndans l'historique" as UC_Save
+}
+
+rectangle "Historique" {
+  usecase "Consulter l'historique\ndes simulations" as UC_History
+  usecase "Filtrer par période\n(7j / 30j / 90j / 1an / tout)" as UC_FilterPeriod
+  usecase "Filtrer par catégorie\nde soin" as UC_FilterCategory
+  usecase "Voir les totaux\npar catégorie" as UC_Totals
+  usecase "Supprimer une simulation" as UC_Delete
+}
+
+rectangle "Profil" {
+  usecase "Sélectionner sa mutuelle\net sa formule" as UC_Mutuelle
+  usecase "Sélectionner son régime\nd'assurance maladie" as UC_Regime
+  usecase "Modifier ses informations\npersonnelles" as UC_EditProfile
+  usecase "Se déconnecter" as UC_Logout
+}
+
+' --- Relations Guest ---
+Guest --> UC_Login
+Guest --> UC_Register
+
+' --- Relations User ---
+User --> UC_Browse
+User --> UC_Search
+User --> UC_SoinDetail
+User --> UC_Articles
+User --> UC_InputPrice
+User --> UC_History
+User --> UC_Mutuelle
+User --> UC_Regime
+User --> UC_EditProfile
+User --> UC_Logout
+
+' --- Include ---
+UC_InputPrice ..> UC_Calculate : <<include>>
+UC_Calculate ..> UC_DetailCalc : <<include>>
+
+' --- Extend ---
+UC_Calculate ..> UC_Save : <<extend>>
+UC_History ..> UC_FilterPeriod : <<extend>>
+UC_History ..> UC_FilterCategory : <<extend>>
+UC_History ..> UC_Totals : <<extend>>
+UC_History ..> UC_Delete : <<extend>>
+UC_Browse ..> UC_SoinDetail : <<include>>
+UC_Search ..> UC_SoinDetail : <<include>>
+UC_Mutuelle ..> UC_Regime : <<include>>
+
+' --- Héritage acteur ---
+Guest <|-- User
+
+@enduml
