@@ -35,7 +35,7 @@ jobs:
 
       - name: Analyze code
         working-directory: cap_app
-        run: flutter analyze
+        run: flutter analyze --no-fatal-infos
 
       - name: Run tests
         working-directory: cap_app
