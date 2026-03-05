@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/simulation_history.dart';
 import '../../services/simulation_history_service.dart';
+import '../../widgets/search_bar.dart';
 
 // Map category name to a color for display
 Color _colorForCategory(String? categorieName) {
@@ -45,6 +46,8 @@ class HistoriquePage extends StatefulWidget {
 class _HistoriquePageState extends State<HistoriquePage>
     with TickerProviderStateMixin {
   final SimulationHistoryService _historyService = SimulationHistoryService();
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
 
   late AnimationController _animationController;
   late AnimationController _skeletonController;
@@ -79,6 +82,10 @@ class _HistoriquePageState extends State<HistoriquePage>
       duration: const Duration(milliseconds: 1000),
       vsync: this,
     )..repeat(reverse: true);
+
+    _searchController.addListener(() {
+      setState(() => _searchQuery = _searchController.text);
+    });
 
     _loadData();
   }
@@ -146,6 +153,8 @@ class _HistoriquePageState extends State<HistoriquePage>
 
   @override
   void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
     _animationController.dispose();
     _skeletonController.dispose();
     super.dispose();
@@ -789,34 +798,11 @@ class _HistoriquePageState extends State<HistoriquePage>
   }
 
   Widget _buildSearchBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: TextField(
-        onChanged: (value) => setState(() => _searchQuery = value),
-        decoration: InputDecoration(
-          hintText: 'Rechercher une simulation...',
-          hintStyle: TextStyle(color: Colors.grey[400]),
-          border: InputBorder.none,
-          icon: Icon(Icons.search, color: Colors.grey[600]),
-          suffixIcon: _searchQuery.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear, color: Colors.grey),
-                  onPressed: () => setState(() => _searchQuery = ''),
-                )
-              : null,
-        ),
-      ),
+    return Search_Bar(
+      textController: _searchController,
+      hintText: 'Rechercher une simulation...',
+      focusNode: _searchFocusNode,
+      onClear: () => _searchController.clear(),
     );
   }
 

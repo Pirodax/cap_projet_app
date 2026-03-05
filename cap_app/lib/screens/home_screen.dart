@@ -88,7 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _clearSearch() => _searchController.clear();
 
-  // Liste de couleurs pastel pour les catégories, en accord avec le style Mutuellia
+  // Liste de couleurs pastel pour les catégories, en accord avec le style Mutuelio
   static const List<Color> _categoryColors = [
     Color(0xFF80CBC4), // Teal clair
     Color(0xFF90CAF9), // Bleu clair
@@ -140,13 +140,13 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         SizedBox(height: topPadding + 10), // Espace sous la barre de recherche
 
-        // En-tête Mutuellia
+        // En-tête Mutuelio
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Column(
             children: [
               Text(
-                'Mutuellia',
+                'Mutuelio',
                 style: GoogleFonts.poppins(
                   fontSize: 42,
                   fontWeight: FontWeight.bold,
