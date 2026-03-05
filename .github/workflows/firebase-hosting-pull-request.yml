@@ -14,17 +14,34 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      # Setup Flutter
+      # Setup Flutter with cache
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.27.4'
           channel: 'stable'
-      
-      # Build Flutter web
+          cache: true
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: cap_app/.dart_tool
+          key: ${{ runner.os }}-dart-${{ hashFiles('cap_app/pubspec.lock') }}
+          restore-keys: ${{ runner.os }}-dart-
+
+      # Quality checks
       - name: Install dependencies
         working-directory: cap_app
         run: flutter pub get
-        
+
+      - name: Analyze code
+        working-directory: cap_app
+        run: flutter analyze
+
+      - name: Run tests
+        working-directory: cap_app
+        run: flutter test
+
+      # Build Flutter web
       - name: Build web
         working-directory: cap_app
         run: flutter build web --release
