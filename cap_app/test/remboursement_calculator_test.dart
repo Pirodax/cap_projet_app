@@ -200,6 +200,131 @@ void main() {
 
       expect(result.remboursementMutuelle, 0.0);
     });
+
+    test('prix exactement égal au BRSS — conventionné (limite)', () {
+      final info = RemboursementInfo(
+        prixFacture: 25.0,
+        brss: 25.0,
+        tauxSecu: 70.0,
+        typeMutuelle: 'pourcentage',
+        tauxMutuelleConventionne: 30.0,
+        tauxMutuelleNonConventionne: 10.0,
+        isMajeur: true,
+      );
+
+      final result = RemboursementCalculator.calculer(info);
+
+      expect(result.estConventionne, isTrue);
+      expect(result.montantDepassement, 0.0);
+    });
+
+    test('prix 1 centime au-dessus du BRSS — non-conventionné', () {
+      final info = RemboursementInfo(
+        prixFacture: 25.01,
+        brss: 25.0,
+        tauxSecu: 70.0,
+        typeMutuelle: 'pourcentage',
+        tauxMutuelleConventionne: 30.0,
+        tauxMutuelleNonConventionne: 10.0,
+        isMajeur: true,
+      );
+
+      final result = RemboursementCalculator.calculer(info);
+
+      expect(result.estConventionne, isFalse);
+      expect(result.montantDepassement, closeTo(0.01, 0.001));
+    });
+
+    test('taux sécu à 100% — remboursement maximum', () {
+      final info = RemboursementInfo(
+        prixFacture: 25.0,
+        brss: 25.0,
+        tauxSecu: 100.0,
+        typeMutuelle: 'pourcentage',
+        tauxMutuelleConventionne: 0.0,
+        isMajeur: true,
+      );
+
+      final result = RemboursementCalculator.calculer(info);
+
+      // Sécu: 25 * 1.00 - 1€ = 24.0
+      expect(result.remboursementSecu, 24.0);
+    });
+
+    test('taux sécu à 0% — aucun remboursement sécu', () {
+      final info = RemboursementInfo(
+        prixFacture: 25.0,
+        brss: 25.0,
+        tauxSecu: 0.0,
+        typeMutuelle: 'pourcentage',
+        tauxMutuelleConventionne: 100.0,
+        isMajeur: true,
+      );
+
+      final result = RemboursementCalculator.calculer(info);
+
+      // Sécu: 25 * 0 - 1€ = -1 → clampé à 0
+      expect(result.remboursementSecu, 0.0);
+      // Mutuelle: 25 * 1.00 = 25.0
+      expect(result.remboursementMutuelle, 25.0);
+    });
+
+    test('null taux mutuelle — traité comme 0', () {
+      final info = RemboursementInfo(
+        prixFacture: 25.0,
+        brss: 25.0,
+        tauxSecu: 70.0,
+        typeMutuelle: 'pourcentage',
+        // tauxMutuelleConventionne is null
+        isMajeur: true,
+      );
+
+      final result = RemboursementCalculator.calculer(info);
+
+      expect(result.remboursementMutuelle, 0.0);
+    });
+
+    test('forfait_annuel non-conventionné — utilise taux + forfait non-conv', () {
+      final info = RemboursementInfo(
+        prixFacture: 150.0,
+        brss: 100.0,
+        tauxSecu: 70.0,
+        typeMutuelle: 'forfait_annuel',
+        tauxMutuelleConventionne: 20.0,
+        tauxMutuelleNonConventionne: 10.0,
+        forfaitConventionne: 50.0,
+        forfaitNonConventionne: 20.0,
+        isMajeur: true,
+      );
+
+      final result = RemboursementCalculator.calculer(info);
+
+      expect(result.estConventionne, isFalse);
+      // Mutuelle: (100 * 0.10) + 20 = 30.0
+      expect(result.remboursementMutuelle, 30.0);
+    });
+
+    test('très grand montant — calcul correct', () {
+      final info = RemboursementInfo(
+        prixFacture: 10000.0,
+        brss: 5000.0,
+        tauxSecu: 70.0,
+        typeMutuelle: 'pourcentage',
+        tauxMutuelleConventionne: 30.0,
+        tauxMutuelleNonConventionne: 10.0,
+        isMajeur: true,
+      );
+
+      final result = RemboursementCalculator.calculer(info);
+
+      expect(result.estConventionne, isFalse);
+      expect(result.montantDepassement, 5000.0);
+      // Sécu: 5000 * 0.70 - 1 = 3499.0
+      expect(result.remboursementSecu, 3499.0);
+      // Mutuelle non-conv: 5000 * 0.10 = 500.0
+      expect(result.remboursementMutuelle, 500.0);
+      expect(result.resteACharge, 6001.0);
+    });
   });
 
   group('RemboursementCalculator.getLabelMutuelle', () {
