@@ -118,16 +118,6 @@ class _SoinDetailScreenState extends State<SoinDetailScreen> {
           .eq('formule_id', formuleId)
           .maybeSingle();
 
-      // DEBUG
-      print('=== DEBUG REMBOURSEMENTS ===');
-      print('Soin ID: ${widget.soinId}');
-      print('Regime ID: $regimeId');
-      print('Formule ID: $formuleId');
-      print('Est majeur: $_isMajeur');
-      print('Sécu Response: $secuResponse');
-      print('Mutuelle Response: $mutuelleResponse');
-      print('===========================');
-
       // Vérifier les données
       if (secuResponse == null) {
         throw Exception(
@@ -341,7 +331,6 @@ class _SoinDetailScreenState extends State<SoinDetailScreen> {
     final String soinIcon = _soinData!['icon'] ?? '💊';
     final String soinDetail = _soinData!['detail'] ?? '';
     final String typeBrss = _soinData!['type_brss'] ?? 'fixe';
-    final String typeMutuelle = _remboursementMutuelle!['type'] ?? 'pourcentage';
     final int? nbrMax = _remboursementMutuelle!['nbr_max'];
     final String detailMutuelle = _remboursementMutuelle!['detail'] ?? '';
 

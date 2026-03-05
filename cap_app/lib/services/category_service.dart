@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 
 import '../core/supabase/supabase_init.dart';
 
@@ -16,7 +17,7 @@ class CategoryService {
 
     } catch (e) {
       // Gérer l'erreur, par exemple, en la journalisant ou en la lançant à nouveau
-      print('Error fetching categories: $e');
+      debugPrint('Error fetching categories: $e');
       return [];
     }
   }
@@ -30,7 +31,7 @@ class CategoryService {
 
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
-      print('Error fetching soins: $e');
+      debugPrint('Error fetching soins: $e');
       return [];
     }
   }
@@ -44,7 +45,7 @@ class CategoryService {
 
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
-      print('Error searching soins: $e');
+      debugPrint('Error searching soins: $e');
       return [];
     }
   }
