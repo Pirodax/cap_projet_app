@@ -212,7 +212,3 @@ git push
 
 ```
 
----
-
-Souhaites-tu que je te fasse aussi une **version simplifiée** (1 page, format “cheat sheet” à coller dans VS Code / Notion de l’équipe) ?
-```
