@@ -384,6 +384,7 @@ void main() {
     test('RAC = 0 → 100%', () {
       final result = RemboursementResult(
         remboursementSecu: 20,
+        totalAutoriseMutuelle: 0,
         remboursementMutuelle: 10,
         participationForfaitaire: 1,
         totalRembourse: 30,
@@ -397,6 +398,7 @@ void main() {
     test('prise en charge partielle', () {
       final result = RemboursementResult(
         remboursementSecu: 16.5,
+        totalAutoriseMutuelle: 0,
         remboursementMutuelle: 7.5,
         participationForfaitaire: 1,
         totalRembourse: 24,

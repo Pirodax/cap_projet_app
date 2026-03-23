@@ -110,4 +110,11 @@ class RemboursementCalculator {
       return 'Mutuelle (${taux.toStringAsFixed(0)}%)';
     }
   }
+
+  static String getCouleurRAC(double rac, double prix) {
+    if (rac == 0) return 'green';
+    if (rac < prix * 0.20) return 'orange';
+    return 'red';
+  }
 }
+
