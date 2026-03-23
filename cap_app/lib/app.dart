@@ -15,8 +15,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Cap Projet App',
       theme: ThemeData(
-        primarySwatch: Colors.indigo,
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
         useMaterial3: true,
         inputDecorationTheme: InputDecorationTheme(
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -57,10 +56,11 @@ class _MainPageState extends State<MainPage> {
     final List<Widget> pages = [
       const HomeScreen(),
       HistoriquePage(isActive: _selectedIndex == 1),
-      const ProfileScreen(), // ✅ on ne passe plus de paramètres ici
+      const ProfileScreen(),
     ];
 
     return Scaffold(
+      extendBody: true,
       body: IndexedStack(
         index: _selectedIndex,
         children: pages,

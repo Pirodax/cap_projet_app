@@ -648,8 +648,8 @@ class _SoinDetailScreenState extends State<SoinDetailScreen> {
                           Text('Exemple pratique', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF4F46E5))),
                         ],
                       ),
-                      SizedBox(height: 12),
-                      Text(
+                      const SizedBox(height: 12),
+                      const Text(
                         'Consultation spécialiste à 60€ (majeur)\n'
                             '• BRSS : 31,50€\n'
                             '• Taux Sécu : 70%\n'
@@ -661,7 +661,8 @@ class _SoinDetailScreenState extends State<SoinDetailScreen> {
                             '• Total autorisé (mutuelle 110%) : 34,65€\n'
                             '• Mutuelle : 34,65€ − 21,05€ = 13,60€\n\n'
                             '• Total remboursé : 34,65€\n'
-                            '• Reste à charge : 60€ − 34,65€ = 25,35€',
+                            '• Reste à charge : 60€ − 34,65€ = 25,35€'
+                        ,
                         style: TextStyle(fontSize: 12, color: Color(0xFF4F46E5), height: 1.6),
                       ),
                     ],
@@ -743,7 +744,9 @@ class _SoinDetailScreenState extends State<SoinDetailScreen> {
   double _getTauxMutuelle() {
     if (_result == null || _remboursementMutuelle == null) return 0;
 
-    return _result!.estConventionne
+    final bool estConventionne = _result!.estConventionne;
+
+    return estConventionne
         ? ((_remboursementMutuelle!['taux_mutuelle_conventionne'] as num?)?.toDouble() ?? 0)
         : ((_remboursementMutuelle!['taux_mutuelle_non_conventionne'] as num?)?.toDouble() ?? 0);
   }

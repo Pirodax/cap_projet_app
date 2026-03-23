@@ -1,11 +1,11 @@
 {
-    "name": "cap_app",
-    "short_name": "cap_app",
+    "name": "Mutuelio",
+    "short_name": "Mutuelio",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Ma santé, mes remboursements simplifiés",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

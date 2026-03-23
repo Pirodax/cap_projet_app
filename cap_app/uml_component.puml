@@ -1,0 +1,134 @@
+@startuml Cap Projet App - Diagramme de Composants
+skinparam componentStyle uml2
+skinparam shadowing false
+skinparam defaultFontSize 11
+skinparam linetype ortho
+
+title Diagramme de Composants — Cap Projet App
+
+' ============================================================
+' USER
+' ============================================================
+actor "Utilisateur" as user
+
+' ============================================================
+' FRONTEND - Flutter App
+' ============================================================
+package "Flutter App (cap_app)" #E3F2FD {
+
+  component [Authentification\n---\nSignInScreen\nSignUpScreen] as AUTH
+  component [Navigation\n---\nMyApp (routes)\nMainPage (IndexedStack)\nBottomNavBar] as NAV
+  component [Accueil\n---\nHomeScreen\nSearch_Bar\nCategoryDetailsScreen] as HOME
+  component [Simulateur\n---\nSoinDetailScreen\nRemboursementCalculator\nRemboursementInfo/Result] as SIMU
+  component [Historique\n---\nHistoriquePage\nSimulationHistory model] as HIST
+  component [Profil\n---\nProfileScreen\nMutuelle/Formule/Regime] as PROF
+
+  component [Services Layer\n---\nCategoryService\nSimulationHistoryService\nProfileService] as SERVICES
+
+  component [Core\n---\nSupabaseInit\nFirebase Options] as CORE
+}
+
+' ============================================================
+' BACKEND - Supabase
+' ============================================================
+package "Supabase Cloud" #E8F5E9 {
+
+  component [Auth Service\n---\nemail + password\nJWT tokens\nsession management] as SB_AUTH
+
+  component [PostgreSQL Database\n---\n10+ tables\n12 migrations\nRelations FK] as SB_DB
+
+  component [Row Level Security\n---\nauth.uid() = user_id\nPublic read (ref tables)\nOwner CRUD (user tables)] as SB_RLS
+
+  component [Auto-generated API\n---\nREST endpoints\nRealtime (unused)] as SB_API
+}
+
+' ============================================================
+' HOSTING - Firebase
+' ============================================================
+package "Firebase" #FFF3E0 {
+  component [Hosting\n---\nCDN global\nHTTPS auto\nCI/CD deploy] as FB_HOST
+}
+
+' ============================================================
+' CI/CD - GitHub
+' ============================================================
+package "GitHub" #F3E5F5 {
+  component [Actions CI/CD\n---\nflutter build web\nfirebase deploy\n2 workflows] as GH_CI
+}
+
+' ============================================================
+' INTERFACES
+' ============================================================
+
+interface "HTTP/S" as http_ui
+interface "Supabase SDK" as sb_sdk
+interface "Firebase SDK" as fb_sdk
+interface "REST API" as rest_api
+
+' ============================================================
+' RELATIONS - User → App
+' ============================================================
+user --> http_ui
+http_ui --> NAV
+
+' --- Navigation interne ---
+NAV --> AUTH : route "/"
+NAV --> HOME : tab 0
+NAV --> HIST : tab 1
+NAV --> PROF : tab 2
+
+' --- Screens → Services ---
+HOME --> SERVICES : getCategories()\nsearchSoins()
+SIMU --> SERVICES : saveSimulation()
+HIST --> SERVICES : getSimulations()\ndeleteSimulation()
+PROF --> SERVICES : getMutuelles()\ngetFormules()\ngetRegimes()
+
+' --- Home → Simulateur ---
+HOME --> SIMU : navigates to\nSoinDetailScreen
+
+' --- Services → Core ---
+SERVICES --> CORE
+
+' --- Core → External SDKs ---
+CORE --> sb_sdk
+CORE --> fb_sdk
+
+' --- SDK → Cloud ---
+sb_sdk --> SB_API
+fb_sdk --> FB_HOST
+
+' --- Auth ---
+AUTH --> sb_sdk : signIn / signUp
+
+' --- Supabase interne ---
+SB_API --> SB_DB : queries
+SB_API --> SB_RLS : enforces policies
+SB_AUTH --> SB_API : JWT validation
+sb_sdk --> SB_AUTH : auth requests
+
+' --- CI/CD ---
+GH_CI --> FB_HOST : deploy on merge
+GH_CI ..> rest_api : flutter build web
+
+' ============================================================
+' NOTES
+' ============================================================
+note right of SIMU
+  Logique métier :
+  - 3 types (%, forfait, forfait_annuel)
+  - Conventionné / Non-conventionné
+  - Participation forfaitaire 1€
+end note
+
+note bottom of SB_RLS
+  Tables référence : SELECT public
+  Tables user : auth.uid() = user_id
+end note
+
+note right of GH_CI
+  2 pipelines :
+  - merge → main = deploy live
+  - PR = preview URL
+end note
+
+@enduml
