@@ -11,7 +11,7 @@ class Search_Bar extends StatelessWidget {
     required this.hintText,
     required this.onClear,
     required this.focusNode,
-    super.key
+    super.key,
   });
 
   @override
@@ -24,23 +24,25 @@ class Search_Bar extends StatelessWidget {
           focusNode: focusNode,
           decoration: InputDecoration(
             hintText: hintText,
-            prefixIcon: const Icon(Icons.search, color: Colors.deepPurple),
+            prefixIcon: Icon(Icons.search, color: Colors.teal.shade600),
             suffixIcon: value.text.isNotEmpty
                 ? IconButton(
-              icon: const Icon(Icons.clear, color: Colors.grey),
-              onPressed: onClear,
-            )
+                    icon: Icon(Icons.clear, color: Colors.blueGrey.shade400),
+                    onPressed: onClear,
+                  )
                 : null,
-            hintStyle: TextStyle(color: Colors.grey.shade600),
+            hintStyle: TextStyle(color: Colors.blueGrey.shade400),
             filled: true,
-            fillColor: Colors.grey.shade100,
+            fillColor: Colors.white,
             contentPadding: const EdgeInsets.all(15),
             enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(20),
-                borderSide: const BorderSide(color: Colors.transparent)),
+              borderRadius: BorderRadius.circular(20),
+              borderSide: BorderSide(color: Colors.grey.shade200),
+            ),
             focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(20),
-                borderSide: const BorderSide(color: Colors.transparent)),
+              borderRadius: BorderRadius.circular(20),
+              borderSide: BorderSide(color: Colors.teal.shade400, width: 1.5),
+            ),
           ),
         );
       },
