@@ -1,9 +1,9 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import '../../../widgets/search_bar.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/category_service.dart';
+import '../../../widgets/search_bar.dart';
 import 'category_details_screen.dart';
 import '../../simulator/screens/soin_detail_screen.dart';
 
@@ -42,11 +42,18 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _handleFocusChange() {
-    if (_focusNode.hasFocus != _isSearching) {
+    if (_focusNode.hasFocus && !_isSearching) {
       setState(() {
-        _isSearching = _focusNode.hasFocus;
+        _isSearching = true;
       });
     }
+  }
+
+  void _dismissSearch() {
+    _focusNode.unfocus();
+    setState(() {
+      _isSearching = false;
+    });
   }
 
   void _handleSearchChange() async {
@@ -86,7 +93,10 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  void _clearSearch() => _searchController.clear();
+  void _clearSearch() {
+    _searchController.clear();
+    _dismissSearch();
+  }
 
   // Liste de couleurs pastel pour les catégories, en accord avec le style Mutuelio
   static const List<Color> _categoryColors = [
@@ -166,7 +176,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
-
+        
         const SizedBox(height: 30),
 
         // Section Catégories
@@ -176,7 +186,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
         // Section Actualités
         _buildNewsSection(),
-
+        
         const SizedBox(height: 40), // Marge en bas de liste
       ],
     );
@@ -195,7 +205,7 @@ class _HomeScreenState extends State<HomeScreen> {
         if (snapshot.hasError) {
           return Center(child: Text('Erreur: ${snapshot.error}'));
         }
-
+        
         _allCategories = snapshot.data ?? [];
         if (_allCategories.isEmpty) {
           return const SizedBox.shrink();
@@ -370,25 +380,30 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildSearchOverlay(double topPadding) {
     final hasResults = _filteredCategories.isNotEmpty || _filteredSoins.isNotEmpty;
 
-    return GestureDetector(
-      onTap: _focusNode.unfocus,
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-        child: Container(
-          color: const Color(0xFFF5F7FA).withOpacity(0.95), // Fond opaque pour masquer le contenu derrière
-          child: !hasResults
-              ? Center(
+    return Stack(
+      children: [
+        GestureDetector(
+          onTap: _dismissSearch,
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+            child: Container(
+              color: const Color(0xFFF5F7FA).withOpacity(0.95),
+            ),
+          ),
+        ),
+        !hasResults
+            ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(Icons.search, size: 64, color: Colors.teal.withOpacity(0.3)),
                       const SizedBox(height: 16),
                       Text(
-                        _searchController.text.isEmpty
-                            ? 'Recherchez un soin ou une catégorie'
+                        _searchController.text.isEmpty 
+                            ? 'Recherchez un soin ou une catégorie' 
                             : 'Aucun résultat trouvé',
                         style: GoogleFonts.poppins(
-                          color: Colors.blueGrey,
+                          color: Colors.blueGrey, 
                           fontSize: 16,
                           fontWeight: FontWeight.w500
                         ),
@@ -430,7 +445,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: ListTile(
                             leading: Text(categoryIcon, style: const TextStyle(fontSize: 24)),
                             title: Text(
-                              categoryName,
+                              categoryName, 
                               style: GoogleFonts.poppins(fontWeight: FontWeight.w500, color: Colors.blueGrey.shade800)
                             ),
                             trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
@@ -495,7 +510,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               style: GoogleFonts.poppins(fontWeight: FontWeight.w500, color: Colors.blueGrey.shade800)
                             ),
                             subtitle: Text(
-                              categoryName,
+                              categoryName, 
                               style: GoogleFonts.poppins(color: Colors.blueGrey.shade400, fontSize: 12)
                             ),
                             onTap: () {
@@ -514,8 +529,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ],
                 ),
-        ),
-      ),
+      ],
     );
   }
 }
