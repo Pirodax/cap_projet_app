@@ -42,11 +42,18 @@ class _HomeScreenState extends State<HomeScreen> {
   // Le reste des méthodes initState, dispose, etc. reste inchangé...
 
   void _handleFocusChange() {
-    if (_focusNode.hasFocus != _isSearching) {
+    if (_focusNode.hasFocus && !_isSearching) {
       setState(() {
-        _isSearching = _focusNode.hasFocus;
+        _isSearching = true;
       });
     }
+  }
+
+  void _dismissSearch() {
+    _focusNode.unfocus();
+    setState(() {
+      _isSearching = false;
+    });
   }
 
   void _handleSearchChange() async {
@@ -86,7 +93,10 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  void _clearSearch() => _searchController.clear();
+  void _clearSearch() {
+    _searchController.clear();
+    _dismissSearch();
+  }
 
   // Liste de couleurs fixes pour les catégories
   static const List<Color> _categoryColors = [
@@ -290,20 +300,25 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildSearchOverlay(double topPadding) {
     final hasResults = _filteredCategories.isNotEmpty || _filteredSoins.isNotEmpty;
 
-    return GestureDetector(
-      onTap: _focusNode.unfocus,
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-        child: Container(
-          color: Colors.black.withOpacity(0.8),
-          child: !hasResults
-              ? Center(
-                  child: Text(
-                    _searchController.text.isEmpty ? 'Que recherchez-vous ?' : 'Aucun résultat',
-                    style: const TextStyle(color: Colors.white, fontSize: 20),
-                  ),
-                )
-              : ListView(
+    return Stack(
+      children: [
+        GestureDetector(
+          onTap: _dismissSearch,
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+            child: Container(
+              color: Colors.black.withOpacity(0.8),
+            ),
+          ),
+        ),
+        !hasResults
+            ? Center(
+                child: Text(
+                  _searchController.text.isEmpty ? 'Que recherchez-vous ?' : 'Aucun résultat',
+                  style: const TextStyle(color: Colors.white, fontSize: 20),
+                ),
+              )
+            : ListView(
                   padding: EdgeInsets.only(top: topPadding),
                   children: [
                     // Section Catégories
@@ -371,8 +386,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ],
                 ),
-        ),
-      ),
+      ],
     );
   }
 }
