@@ -5,7 +5,35 @@ import 'package:loodo_app/features/simulator/calculators/remboursement_calculato
 
 void main() {
   group('RemboursementCalculator.calculer', () {
-    test('conventionné pourcentage — prix <= BRSS', () {
+    test('conventionné pourcentage — mutuelle 100% BR complète la sécu', () {
+      final info = RemboursementInfo(
+        prixFacture: 25.0,
+        brss: 25.0,
+        tauxSecu: 70.0,
+        typeMutuelle: 'pourcentage',
+        tauxMutuelleConventionne: 100.0,
+        tauxMutuelleNonConventionne: 50.0,
+        isMajeur: true,
+      );
+
+      final result = RemboursementCalculator.calculer(info);
+
+      expect(result.estConventionne, isTrue);
+      expect(result.montantDepassement, 0.0);
+      // Sécu: 25 * 0.70 - 1€ = 16.50
+      expect(result.remboursementSecu, 16.50);
+      expect(result.participationForfaitaire, 1.0);
+      // Mutuelle: total autorisé = 25 * 1.00 = 25.0, complément = 25.0 - 16.50 = 8.50
+      expect(result.totalAutoriseMutuelle, 25.0);
+      expect(result.remboursementMutuelle, 8.50);
+      // Total: 16.50 + 8.50 = 25.0
+      expect(result.totalRembourse, 25.0);
+      // RAC: 25 - 25 = 0
+      expect(result.resteACharge, 0.0);
+    });
+
+    test('conventionné pourcentage — taux mutuelle < taux sécu → mutuelle à 0', () {
+      // Cas où le total autorisé mutuelle (30% BR) est inférieur à ce que la sécu rembourse déjà
       final info = RemboursementInfo(
         prixFacture: 25.0,
         brss: 25.0,
@@ -19,16 +47,14 @@ void main() {
       final result = RemboursementCalculator.calculer(info);
 
       expect(result.estConventionne, isTrue);
-      expect(result.montantDepassement, 0.0);
       // Sécu: 25 * 0.70 - 1€ = 16.50
       expect(result.remboursementSecu, 16.50);
-      expect(result.participationForfaitaire, 1.0);
-      // Mutuelle: 25 * 0.30 = 7.50
-      expect(result.remboursementMutuelle, 7.50);
-      // Total: 16.50 + 7.50 = 24.0
-      expect(result.totalRembourse, 24.0);
-      // RAC: 25 - 24 = 1.0
-      expect(result.resteACharge, 1.0);
+      // Mutuelle: 25 * 0.30 = 7.50 - 16.50 = -9.0 → clampé à 0
+      expect(result.remboursementMutuelle, 0.0);
+      // Total: 16.50 + 0 = 16.50
+      expect(result.totalRembourse, 16.50);
+      // RAC: 25 - 16.50 = 8.50
+      expect(result.resteACharge, 8.50);
     });
 
     test('non-conventionné pourcentage — prix > BRSS (dépassement)', () {
@@ -37,8 +63,8 @@ void main() {
         brss: 25.0,
         tauxSecu: 70.0,
         typeMutuelle: 'pourcentage',
-        tauxMutuelleConventionne: 30.0,
-        tauxMutuelleNonConventionne: 10.0,
+        tauxMutuelleConventionne: 100.0,
+        tauxMutuelleNonConventionne: 150.0,
         isMajeur: true,
       );
 
@@ -48,15 +74,15 @@ void main() {
       expect(result.montantDepassement, 25.0);
       // Sécu: 25 * 0.70 - 1€ = 16.50
       expect(result.remboursementSecu, 16.50);
-      // Mutuelle non-conv: 25 * 0.10 = 2.50
-      expect(result.remboursementMutuelle, 2.50);
-      // Total: 16.50 + 2.50 = 19.0
-      expect(result.totalRembourse, 19.0);
-      // RAC: 50 - 19 = 31.0
-      expect(result.resteACharge, 31.0);
+      // Mutuelle non-conv: total = 25 * 1.50 = 37.50, complément = 37.50 - 16.50 = 21.0
+      expect(result.remboursementMutuelle, 21.0);
+      // Total: 16.50 + 21.0 = 37.50
+      expect(result.totalRembourse, 37.50);
+      // RAC: 50 - 37.50 = 12.50
+      expect(result.resteACharge, 12.50);
     });
 
-    test('forfait conventionné', () {
+    test('forfait conventionné — plafonné au reste après sécu', () {
       final info = RemboursementInfo(
         prixFacture: 30.0,
         brss: 30.0,
@@ -72,14 +98,15 @@ void main() {
       expect(result.estConventionne, isTrue);
       // Sécu: 30 * 0.60 - 1€ = 17.0
       expect(result.remboursementSecu, 17.0);
-      // Mutuelle: forfait conv = 15.0
-      expect(result.remboursementMutuelle, 15.0);
-      expect(result.totalRembourse, 32.0);
-      // RAC: 30 - 32 = -2 → clampé à 0
+      // Mutuelle: forfait 15€, mais max = 30 - 17 = 13.0 → plafonné à 13.0
+      expect(result.remboursementMutuelle, 13.0);
+      // Total: 17 + 13 = 30.0
+      expect(result.totalRembourse, 30.0);
+      // RAC: 30 - 30 = 0
       expect(result.resteACharge, 0.0);
     });
 
-    test('forfait non-conventionné', () {
+    test('forfait non-conventionné — forfait sous le plafond', () {
       final info = RemboursementInfo(
         prixFacture: 50.0,
         brss: 30.0,
@@ -93,12 +120,16 @@ void main() {
       final result = RemboursementCalculator.calculer(info);
 
       expect(result.estConventionne, isFalse);
-      // Mutuelle: forfait non-conv = 5.0
+      // Sécu: 30 * 0.60 - 1€ = 17.0
+      expect(result.remboursementSecu, 17.0);
+      // Mutuelle: forfait non-conv = 5.0, max = 50 - 17 = 33 → pas plafonné
       expect(result.remboursementMutuelle, 5.0);
       expect(result.montantDepassement, 20.0);
+      // RAC: 50 - 22 = 28.0
+      expect(result.resteACharge, 28.0);
     });
 
-    test('forfait_annuel — combine pourcentage + forfait', () {
+    test('forfait_annuel — combine % + forfait, plafonné au prix', () {
       final info = RemboursementInfo(
         prixFacture: 100.0,
         brss: 100.0,
@@ -114,10 +145,11 @@ void main() {
       expect(result.estConventionne, isTrue);
       // Sécu: 100 * 0.70 - 1€ = 69.0
       expect(result.remboursementSecu, 69.0);
-      // Mutuelle: (100 * 0.20) + 50 = 70.0
-      expect(result.remboursementMutuelle, 70.0);
-      expect(result.totalRembourse, 139.0);
-      // RAC: 100 - 139 = -39 → clampé à 0
+      // Mutuelle brut: (100 * 0.20) + 50 = 70.0, max = 100 - 69 = 31.0 → plafonné
+      expect(result.remboursementMutuelle, 31.0);
+      // Total: 69 + 31 = 100.0
+      expect(result.totalRembourse, 100.0);
+      // RAC: 100 - 100 = 0
       expect(result.resteACharge, 0.0);
     });
 
@@ -168,7 +200,6 @@ void main() {
       final result = RemboursementCalculator.calculer(info);
 
       expect(result.estConventionne, isTrue);
-      // RAC: 0 - total → clampé à 0
       expect(result.resteACharge, 0.0);
     });
 
@@ -208,8 +239,8 @@ void main() {
         brss: 25.0,
         tauxSecu: 70.0,
         typeMutuelle: 'pourcentage',
-        tauxMutuelleConventionne: 30.0,
-        tauxMutuelleNonConventionne: 10.0,
+        tauxMutuelleConventionne: 100.0,
+        tauxMutuelleNonConventionne: 50.0,
         isMajeur: true,
       );
 
@@ -225,8 +256,8 @@ void main() {
         brss: 25.0,
         tauxSecu: 70.0,
         typeMutuelle: 'pourcentage',
-        tauxMutuelleConventionne: 30.0,
-        tauxMutuelleNonConventionne: 10.0,
+        tauxMutuelleConventionne: 100.0,
+        tauxMutuelleNonConventionne: 50.0,
         isMajeur: true,
       );
 
@@ -252,7 +283,7 @@ void main() {
       expect(result.remboursementSecu, 24.0);
     });
 
-    test('taux sécu à 0% — aucun remboursement sécu', () {
+    test('taux sécu à 0% — mutuelle prend le relais', () {
       final info = RemboursementInfo(
         prixFacture: 25.0,
         brss: 25.0,
@@ -266,7 +297,7 @@ void main() {
 
       // Sécu: 25 * 0 - 1€ = -1 → clampé à 0
       expect(result.remboursementSecu, 0.0);
-      // Mutuelle: 25 * 1.00 = 25.0
+      // Mutuelle: total = 25 * 1.00 = 25, complément = 25 - 0 = 25.0
       expect(result.remboursementMutuelle, 25.0);
     });
 
@@ -301,18 +332,22 @@ void main() {
       final result = RemboursementCalculator.calculer(info);
 
       expect(result.estConventionne, isFalse);
-      // Mutuelle: (100 * 0.10) + 20 = 30.0
+      // Sécu: 100 * 0.70 - 1€ = 69.0
+      expect(result.remboursementSecu, 69.0);
+      // Mutuelle: (100 * 0.10) + 20 = 30.0, max = 150 - 69 = 81 → pas plafonné
       expect(result.remboursementMutuelle, 30.0);
+      // RAC: 150 - 99 = 51.0
+      expect(result.resteACharge, 51.0);
     });
 
-    test('très grand montant — calcul correct', () {
+    test('très grand montant — dépassement avec mutuelle 100% non-conv', () {
       final info = RemboursementInfo(
         prixFacture: 10000.0,
         brss: 5000.0,
         tauxSecu: 70.0,
         typeMutuelle: 'pourcentage',
-        tauxMutuelleConventionne: 30.0,
-        tauxMutuelleNonConventionne: 10.0,
+        tauxMutuelleConventionne: 100.0,
+        tauxMutuelleNonConventionne: 100.0,
         isMajeur: true,
       );
 
@@ -322,9 +357,12 @@ void main() {
       expect(result.montantDepassement, 5000.0);
       // Sécu: 5000 * 0.70 - 1 = 3499.0
       expect(result.remboursementSecu, 3499.0);
-      // Mutuelle non-conv: 5000 * 0.10 = 500.0
-      expect(result.remboursementMutuelle, 500.0);
-      expect(result.resteACharge, 6001.0);
+      // Mutuelle: total = 5000 * 1.00 = 5000, complément = 5000 - 3499 = 1501
+      expect(result.remboursementMutuelle, 1501.0);
+      // Total: 3499 + 1501 = 5000
+      expect(result.totalRembourse, 5000.0);
+      // RAC: 10000 - 5000 = 5000 (le dépassement reste à charge)
+      expect(result.resteACharge, 5000.0);
     });
   });
 
@@ -349,20 +387,20 @@ void main() {
       final label = RemboursementCalculator.getLabelMutuelle(
         typeMutuelle: 'pourcentage',
         estConventionne: true,
-        tauxConventionne: 30.0,
-        tauxNonConventionne: 10.0,
+        tauxConventionne: 100.0,
+        tauxNonConventionne: 150.0,
       );
-      expect(label, 'Mutuelle (30%)');
+      expect(label, 'Mutuelle (100%)');
     });
 
     test('pourcentage non-conventionné → affiche taux non-conv', () {
       final label = RemboursementCalculator.getLabelMutuelle(
         typeMutuelle: 'pourcentage',
         estConventionne: false,
-        tauxConventionne: 30.0,
-        tauxNonConventionne: 10.0,
+        tauxConventionne: 100.0,
+        tauxNonConventionne: 150.0,
       );
-      expect(label, 'Mutuelle (10%)');
+      expect(label, 'Mutuelle (150%)');
     });
   });
 
@@ -398,16 +436,16 @@ void main() {
     test('prise en charge partielle', () {
       final result = RemboursementResult(
         remboursementSecu: 16.5,
-        totalAutoriseMutuelle: 0,
-        remboursementMutuelle: 7.5,
+        totalAutoriseMutuelle: 25.0,
+        remboursementMutuelle: 8.5,
         participationForfaitaire: 1,
-        totalRembourse: 24,
-        resteACharge: 1,
+        totalRembourse: 25,
+        resteACharge: 0,
         montantDepassement: 0,
         estConventionne: true,
       );
-      // 24 / (1 + 24) * 100 = 96%
-      expect(result.pourcentagePriseEnCharge, 96.0);
+      // 25 / (0 + 25) * 100 = 100%
+      expect(result.pourcentagePriseEnCharge, 100.0);
     });
   });
 }
