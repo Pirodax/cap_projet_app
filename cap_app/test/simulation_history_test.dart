@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:loodo_app/models/simulation_history.dart';
+import 'package:loodo_app/features/history/models/simulation_history.dart';
 
 void main() {
   group('SimulationHistory.fromJson', () {

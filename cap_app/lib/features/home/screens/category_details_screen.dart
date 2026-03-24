@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/category_service.dart';
-import 'soin_detail_screen.dart';
+import '../../simulator/screens/soin_detail_screen.dart';
 
 class CategoryDetailsScreen extends StatefulWidget {
   final int categoryId;

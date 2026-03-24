@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'features/auth/screens/sign_in_screen.dart';
 import 'features/auth/screens/sign_up_screen.dart' as auth;
-import 'screens/home_screen.dart';
-import 'screens/profile_screen.dart';
+import 'features/home/screens/home_screen.dart';
+import 'features/profile/screens/profile_screen.dart';
 import 'widgets/bottom_navbar.dart';
-import 'features/History/historique_page.dart';
+import 'features/history/screens/historique_page.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});

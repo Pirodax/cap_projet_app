@@ -2,66 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:intl/date_symbol_data_local.dart'; // 👈 IMPORT IMPORTANT POUR LES DATES
+import 'package:intl/date_symbol_data_local.dart';
 
-// =============================================
-// 1️⃣ MODÈLES DE DONNÉES
-// =============================================
-class Mutuelle {
-  final int id;
-  final String name;
-  Mutuelle({required this.id, required this.name});
-}
+import '../models/formule.dart';
+import '../models/mutuelle.dart';
+import '../models/regime.dart';
+import '../services/profile_service.dart';
 
-class Formule {
-  final int id;
-  final int mutuelleId;
-  final String name;
-  Formule({required this.id, required this.mutuelleId, required this.name});
-}
-
-class Regime {
-  final int id;
-  final String name;
-  Regime({required this.id, required this.name});
-}
-
-// =============================================
-// 2️⃣ CLASSE DE SERVICE
-// =============================================
-class ProfileService {
-  final supabase = Supabase.instance.client;
-
-  Future<List<Mutuelle>> getMutuelles() async {
-    final response = await supabase.from('mutuelles').select('id, name');
-    return (response as List)
-        .map((item) => Mutuelle(id: item['id'], name: item['name']))
-        .toList();
-  }
-
-  Future<List<Formule>> getFormules() async {
-    final response = await supabase.from('mutuelle_formules').select('id, mutuelle_id, name');
-    return (response as List)
-        .map((item) => Formule(id: item['id'], mutuelleId: item['mutuelle_id'], name: item['name']))
-        .toList();
-  }
-
-  Future<List<Regime>> getRegimes() async {
-    try {
-      final response = await supabase.from('assurance_maladie_regimes').select('id, name');
-      return (response as List)
-          .map((item) => Regime(id: item['id'], name: item['name']))
-          .toList();
-    } catch (e) {
-      debugPrint('Erreur récupération régimes: $e');
-      return [];
-    }
-  }
-}
-
-// =============================================
-// 3️⃣ ÉCRAN DU PROFIL (UI MODERNE)
-// =============================================
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -217,7 +164,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (picked != null) setState(() => _birthDate = picked);
   }
 
-  // 🎨 DESIGN: Méthode utilitaire pour le style des champs
+  // DESIGN: Méthode utilitaire pour le style des champs
   InputDecoration _buildInputDecoration(String label, IconData icon) {
     return InputDecoration(
       labelText: label,
@@ -256,7 +203,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         iconTheme: const IconThemeData(color: Colors.black87),
       ),
 
-      // 1️⃣ Le corps de la page (scrollable)
+      // Le corps de la page (scrollable)
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 100), // Marge en bas pour le bouton sticky
@@ -395,7 +342,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
 
-      // 2️⃣ Le Bouton Fixe en bas (Zone blanche "Sticky")
+      // Le Bouton Fixe en bas (Zone blanche "Sticky")
       bottomNavigationBar: Container(
         padding: const EdgeInsets.fromLTRB(20, 15, 20, 30),
         decoration: BoxDecoration(

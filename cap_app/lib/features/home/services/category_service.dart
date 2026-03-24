@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-import '../core/supabase/supabase_init.dart';
+import '../../../core/supabase/supabase_init.dart';
 
 class CategoryService {
   Future<List<Map<String, dynamic>>> getCategories() async {

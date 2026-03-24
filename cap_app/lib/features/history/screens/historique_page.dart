@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../models/simulation_history.dart';
-import '../../services/simulation_history_service.dart';
-import '../../widgets/search_bar.dart';
+import '../models/simulation_history.dart';
+import '../services/simulation_history_service.dart';
+import '../../../widgets/search_bar.dart';
 
 // Map category name to a color for display
 Color _colorForCategory(String? categorieName) {
