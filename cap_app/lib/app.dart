@@ -5,15 +5,18 @@ import 'features/home/screens/home_screen.dart';
 import 'features/profile/screens/profile_screen.dart';
 import 'widgets/bottom_navbar.dart';
 import 'features/history/screens/historique_page.dart';
+import 'core/supabase/supabase_init.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final isLoggedIn = supabase.auth.currentSession != null;
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Cap Projet App',
+      title: 'Mutuelio',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
         useMaterial3: true,
@@ -27,7 +30,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      initialRoute: '/',
+      initialRoute: isLoggedIn ? '/main' : '/',
       routes: {
         '/': (_) => const SignInScreen(),
         '/signup': (_) => const auth.SignUpScreen(),

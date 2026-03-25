@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/supabase/supabase_init.dart';
 
@@ -34,9 +35,7 @@ class _SignInScreenState extends State<SignInScreen> {
         email: _emailCtrl.text.trim(),
         password: _pwdCtrl.text,
       );
-      // Ajout de la navigation après une connexion réussie
       if (mounted && response.user != null) {
-        // pushReplacementNamed empêche l'utilisateur de revenir à l'écran de connexion
         Navigator.of(context).pushReplacementNamed('/main');
       }
     } on AuthException catch (e) {
@@ -51,146 +50,216 @@ class _SignInScreenState extends State<SignInScreen> {
         }
       });
     } catch (_) {
-      setState(() => _error = "Erreur inattendue. Réessaie.");
+      setState(() => _error = 'Erreur inattendue. Réessaie.');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  // Méthode pour naviguer vers l'écran de création de compte
-  void _goToSignUp() {
-    Navigator.of(context).pushNamed('/signup');
-  }
-
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final disabled = _loading;
 
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              (cs.primary).withOpacity(0.12),
-              (cs.tertiary).withOpacity(0.10),
-              (cs.surfaceContainerHighest).withOpacity(0.08),
-            ],
+            colors: [Color(0xFF004D40), Color(0xFF00695C), Color(0xFF26A69A)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
         ),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 460),
-            child: Padding(
-              padding: const EdgeInsets.all(18),
-              child: Card(
-                elevation: 8,
-                shadowColor: Colors.black.withOpacity(0.3),
-                color: cs.surface.withOpacity(0.85),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Se connecter',
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
-                              ?.copyWith(fontWeight: FontWeight.w700),
-                        ),
-                        const SizedBox(height: 22),
-                        TextFormField(
-                          controller: _emailCtrl,
-                          enabled: !disabled,
-                          keyboardType: TextInputType.emailAddress,
-                          autofillHints: const [AutofillHints.username, AutofillHints.email],
-                          decoration: const InputDecoration(
-                            labelText: 'Email',
-                            prefixIcon: Icon(Icons.email_outlined),
-                          ),
-                          validator: (v) {
-                            final value = v?.trim() ?? '';
-                            if (value.isEmpty) return 'Email requis';
-                            final ok = RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(value);
-                            if (!ok) return 'Email invalide';
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 14),
-                        TextFormField(
-                          controller: _pwdCtrl,
-                          enabled: !disabled,
-                          obscureText: _obscure,
-                          autofillHints: const [AutofillHints.password],
-                          decoration: InputDecoration(
-                            labelText: 'Mot de passe',
-                            prefixIcon: const Icon(Icons.lock_outline),
-                            suffixIcon: IconButton(
-                              tooltip: _obscure ? 'Afficher' : 'Masquer',
-                              onPressed: disabled
-                                  ? null
-                                  : () => setState(() => _obscure = !_obscure),
-                              icon: Icon(
-                                _obscure
-                                    ? Icons.visibility_outlined
-                                    : Icons.visibility_off_outlined,
-                              ),
-                            ),
-                          ),
-                          validator: (v) {
-                            final value = v ?? '';
-                            if (value.isEmpty) return 'Mot de passe requis';
-                            // Correction de la validation : 8 caractères
-                            //if (value.length < 8) return 'Au moins 8 caractères';
-                            return null;
-                          },
-                          onFieldSubmitted: (_) => _submit(),
-                        ),
-                        if (_error != null) ...[
-                          const SizedBox(height: 14),
-                          _ErrorBanner(message: _error!),
-                        ],
-                        const SizedBox(height: 24),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 52,
-                          child: FilledButton(
-                            onPressed: disabled ? null : _submit,
-                            child: _loading
-                                ? const SizedBox(
-                              height: 22,
-                              width: 22,
-                              child: CircularProgressIndicator(strokeWidth: 2.4),
-                            )
-                                : const Text('Se connecter'),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Text("Nouveau ?"),
-                            TextButton(
-                              // Correction: navigue vers la page de création de compte
-                              onPressed: disabled ? null : _goToSignUp,
-                              child: const Text("Créer un compte"),
-                            ),
-                          ],
-                        ),
-                      ],
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 460),
+                child: Column(
+                  children: [
+                    Image.asset(
+                      'assets/images/icons/mutuelio_logo_with_name.png',
+                      height: 180,
                     ),
-                  ),
+                    const SizedBox(height: 36),
+                    Card(
+                      elevation: 16,
+                      shadowColor: Colors.black.withOpacity(0.3),
+                      color: Colors.white,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24)),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 28, vertical: 32),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Connexion',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.blueGrey.shade800,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Content de te revoir !',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 13,
+                                  color: Colors.blueGrey.shade400,
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              TextFormField(
+                                controller: _emailCtrl,
+                                enabled: !disabled,
+                                keyboardType: TextInputType.emailAddress,
+                                autofillHints: const [
+                                  AutofillHints.username,
+                                  AutofillHints.email
+                                ],
+                                decoration:
+                                    _inputDeco('Email', Icons.email_outlined),
+                                validator: (v) {
+                                  final value = v?.trim() ?? '';
+                                  if (value.isEmpty) return 'Email requis';
+                                  if (!RegExp(r'^[^@]+@[^@]+\.[^@]+$')
+                                      .hasMatch(value)) return 'Email invalide';
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 16),
+                              TextFormField(
+                                controller: _pwdCtrl,
+                                enabled: !disabled,
+                                obscureText: _obscure,
+                                autofillHints: const [AutofillHints.password],
+                                decoration:
+                                    _inputDeco('Mot de passe', Icons.lock_outline)
+                                        .copyWith(
+                                  suffixIcon: IconButton(
+                                    tooltip:
+                                        _obscure ? 'Afficher' : 'Masquer',
+                                    onPressed: disabled
+                                        ? null
+                                        : () => setState(
+                                            () => _obscure = !_obscure),
+                                    icon: Icon(
+                                      _obscure
+                                          ? Icons.visibility_outlined
+                                          : Icons.visibility_off_outlined,
+                                      color: Colors.teal,
+                                    ),
+                                  ),
+                                ),
+                                validator: (v) =>
+                                    (v ?? '').isEmpty ? 'Mot de passe requis' : null,
+                                onFieldSubmitted: (_) => _submit(),
+                              ),
+                              if (_error != null) ...[
+                                const SizedBox(height: 16),
+                                _ErrorBanner(message: _error!),
+                              ],
+                              const SizedBox(height: 28),
+                              SizedBox(
+                                width: double.infinity,
+                                height: 54,
+                                child: ElevatedButton(
+                                  onPressed: disabled ? null : _submit,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF00897B),
+                                    foregroundColor: Colors.white,
+                                    disabledBackgroundColor:
+                                        Colors.teal.shade100,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(16)),
+                                    elevation: 0,
+                                  ),
+                                  child: _loading
+                                      ? const SizedBox(
+                                          height: 22,
+                                          width: 22,
+                                          child: CircularProgressIndicator(
+                                              strokeWidth: 2.4,
+                                              color: Colors.white),
+                                        )
+                                      : Text(
+                                          'Se connecter',
+                                          style: GoogleFonts.poppins(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600),
+                                        ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Nouveau ?',
+                                    style: GoogleFonts.poppins(
+                                        color: Colors.blueGrey.shade400),
+                                  ),
+                                  TextButton(
+                                    onPressed: disabled
+                                        ? null
+                                        : () => Navigator.of(context)
+                                            .pushNamed('/signup'),
+                                    child: Text(
+                                      'Créer un compte',
+                                      style: GoogleFonts.poppins(
+                                        color: const Color(0xFF00897B),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  InputDecoration _inputDeco(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, color: Colors.teal),
+      filled: true,
+      fillColor: Colors.grey.shade50,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: Colors.grey.shade200),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Colors.teal, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Colors.red),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Colors.red, width: 2),
       ),
     );
   }
@@ -202,20 +271,21 @@ class _ErrorBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: cs.errorContainer,
+        color: Colors.red.shade50,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: cs.error.withOpacity(0.4)),
+        border: Border.all(color: Colors.red.shade200),
       ),
       child: Row(
         children: [
-          Icon(Icons.error_outline_rounded, color: cs.error),
-          const SizedBox(width: 8),
-          Expanded(child: Text(message)),
+          Icon(Icons.error_outline_rounded, color: Colors.red.shade400),
+          const SizedBox(width: 10),
+          Expanded(
+              child: Text(message,
+                  style: TextStyle(color: Colors.red.shade700))),
         ],
       ),
     );
