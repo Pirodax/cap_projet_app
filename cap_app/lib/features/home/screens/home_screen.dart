@@ -150,25 +150,31 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         SizedBox(height: topPadding + 10), // Espace sous la barre de recherche
 
-        // En-tête Mutuelio
+        // En-tête Mutuellio
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Column(
             children: [
+              Image.asset(
+                'assets/images/icons/mutuelio_logo_without_name.png',
+                height: 64,
+              ),
+              const SizedBox(height: 10),
               Text(
                 'Mutuelio',
                 style: GoogleFonts.poppins(
-                  fontSize: 42,
+                  fontSize: 28,
                   fontWeight: FontWeight.bold,
                   color: Colors.teal.shade800,
                   letterSpacing: -0.5,
                 ),
               ),
-              const SizedBox(height: 5),
+              const SizedBox(height: 4),
               Text(
-                'Ma santé, mes remboursements simplifiés',
+                'Simulez. Anticipez. Maîtrisez votre santé.',
+                textAlign: TextAlign.center,
                 style: GoogleFonts.poppins(
-                  fontSize: 14,
+                  fontSize: 13,
                   color: Colors.blueGrey.shade400,
                   fontWeight: FontWeight.w500,
                 ),
