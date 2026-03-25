@@ -8,13 +8,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:loodo_app/app.dart';
+import 'package:loodo_app/core/supabase/supabase_init.dart';
 
 void main() {
-  testWidgets('App starts without crashing', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  setUpAll(() async {
+    await initSupabase();
+  });
 
-    // Verify that the initial screen is rendered without throwing an error.
+  testWidgets('App starts without crashing', (WidgetTester tester) async {
+    await tester.pumpWidget(const MyApp());
     expect(find.byType(MaterialApp), findsOneWidget);
   });
 }
