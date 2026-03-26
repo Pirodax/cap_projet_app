@@ -5,6 +5,7 @@ import 'features/home/screens/home_screen.dart';
 import 'features/profile/screens/profile_screen.dart';
 import 'widgets/bottom_navbar.dart';
 import 'features/history/screens/historique_page.dart';
+import 'core/supabase/supabase_init.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -46,6 +47,44 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
   int _selectedIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkProfileCompleteness();
+  }
+
+  Future<void> _checkProfileCompleteness() async {
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
+
+    try {
+      final data = await supabase
+          .from('user_infos')
+          .select('mutuelle_formule_id, regime_assurance_maladie_id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+      final isIncomplete = data == null ||
+          data['mutuelle_formule_id'] == null ||
+          data['regime_assurance_maladie_id'] == null;
+
+      if (isIncomplete && mounted) {
+        setState(() => _selectedIndex = 2);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Complétez votre profil pour accéder aux simulations'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.teal.shade600,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Erreur vérification profil: $e');
+    }
+  }
 
   void _onItemTapped(int index) {
     setState(() => _selectedIndex = index);
