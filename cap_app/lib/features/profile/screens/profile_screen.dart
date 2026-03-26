@@ -99,6 +99,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = supabase.auth.currentUser;
     if (user == null) return;
 
+    if (_birthDate != null) {
+      final now = DateTime.now();
+      final age = now.year - _birthDate!.year -
+          ((now.month < _birthDate!.month || (now.month == _birthDate!.month && now.day < _birthDate!.day)) ? 1 : 0);
+      if (age < 16) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Vous devez avoir au moins 16 ans'),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Colors.red.shade600,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          );
+        }
+        return;
+      }
+    }
+
     final data = {
       'user_id': user.id,
       'username': _usernameController.text.trim(),
@@ -165,13 +184,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _selectBirthDate() async {
     final now = DateTime.now();
+    final maxDate = DateTime(now.year - 16, now.month, now.day);
     final initialDate = _birthDate ?? DateTime(now.year - 25);
+    final safeInitialDate = initialDate.isAfter(maxDate) ? maxDate : initialDate;
 
     final picked = await showDatePicker(
       context: context,
-      initialDate: initialDate,
+      initialDate: safeInitialDate,
       firstDate: DateTime(1920),
-      lastDate: now,
+      lastDate: maxDate,
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
