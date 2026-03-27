@@ -10,7 +10,9 @@ import '../models/regime.dart';
 import '../services/profile_service.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final VoidCallback? onProfileCompleted;
+
+  const ProfileScreen({super.key, this.onProfileCompleted});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -33,6 +35,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<Regime> _allRegimes = [];
 
   bool _loading = true;
+  bool _isFirstSetup = false;
 
   @override
   void initState() {
@@ -76,6 +79,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (_selectedMutuelleId != null) {
           _filteredFormules = _allFormules.where((f) => f.mutuelleId == _selectedMutuelleId).toList();
         }
+
+        _isFirstSetup = _selectedFormuleId == null || _selectedRegimeId == null;
+      } else {
+        _isFirstSetup = true;
       }
     } catch (e) {
       debugPrint('Erreur chargement des données initiales: $e');
@@ -130,14 +137,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       await supabase.from('user_infos').upsert(data, onConflict: 'user_id');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Profil mis à jour avec succès'),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.green.shade600,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        );
+        if (_isFirstSetup && _selectedFormuleId != null && _selectedRegimeId != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Profil complété ! Bienvenue sur Mutuelio'),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Colors.green.shade600,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          );
+          setState(() => _isFirstSetup = false);
+          widget.onProfileCompleted?.call();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Profil mis à jour avec succès'),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Colors.green.shade600,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          );
+        }
       }
     } catch (e) {
       debugPrint('Erreur maj profil: $e');
@@ -261,6 +281,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 100), // Marge en bas pour le bouton sticky
         child: Column(
           children: [
+            // 0. Bandeau d'accueil pour les nouveaux utilisateurs
+            if (_isFirstSetup) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.teal.shade400, Colors.teal.shade600],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  children: [
+                    const Icon(Icons.waving_hand, size: 36, color: Colors.white),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Bienvenue sur Mutuelio !',
+                      style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Remplissez votre profil pour obtenir vos estimations de remboursement personnalisées.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(fontSize: 14, color: Colors.white.withOpacity(0.9), height: 1.4),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+
             // 1. Section Avatar (Centrée, sans icône edit)
             Center(
               child: Container(

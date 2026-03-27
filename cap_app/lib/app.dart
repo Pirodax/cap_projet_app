@@ -95,7 +95,9 @@ class _MainPageState extends State<MainPage> {
     final List<Widget> pages = [
       const HomeScreen(),
       HistoriquePage(isActive: _selectedIndex == 1),
-      const ProfileScreen(),
+      ProfileScreen(onProfileCompleted: () {
+        setState(() => _selectedIndex = 0);
+      }),
     ];
 
     return Scaffold(
