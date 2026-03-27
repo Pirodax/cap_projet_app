@@ -240,7 +240,9 @@ class _SoinDetailScreenState extends State<SoinDetailScreen> {
               ),
               const SizedBox(height: 32),
               ElevatedButton(
-                onPressed: () => Navigator.pushNamed(context, '/profile'),
+                onPressed: () {
+                  Navigator.of(context).popUntil((route) => route.isFirst);
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF4F46E5),
                   foregroundColor: Colors.white,
