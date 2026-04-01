@@ -145,16 +145,17 @@ class _MainPageState extends State<MainPage> {
             ),
           ),
 
-          // Texte + fleche au centre de l'ecran
+          // Texte centre au-dessus du spotlight
           Positioned(
-            left: 40,
-            right: 40,
-            bottom: navBarHeight + 80,
+            left: 30,
+            right: 30,
+            bottom: navBarHeight + spotlightRadius + 40,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   'Commencez ici !',
+                  textAlign: TextAlign.center,
                   style: GoogleFonts.poppins(
                     fontSize: 24,
                     fontWeight: FontWeight.w700,
@@ -162,7 +163,7 @@ class _MainPageState extends State<MainPage> {
                     decoration: TextDecoration.none,
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 Text(
                   'Renseignez votre mutuelle pour\ndécouvrir vos remboursements',
                   textAlign: TextAlign.center,
@@ -173,12 +174,6 @@ class _MainPageState extends State<MainPage> {
                     height: 1.5,
                     decoration: TextDecoration.none,
                   ),
-                ),
-                const SizedBox(height: 20),
-                const Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  color: Colors.white,
-                  size: 40,
                 ),
               ],
             ),
