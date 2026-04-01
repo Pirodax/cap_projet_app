@@ -281,39 +281,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 100), // Marge en bas pour le bouton sticky
         child: Column(
           children: [
-            // 0. Bandeau d'accueil pour les nouveaux utilisateurs
-            if (_isFirstSetup) ...[
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.teal.shade400, Colors.teal.shade600],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Column(
-                  children: [
-                    const Icon(Icons.waving_hand, size: 36, color: Colors.white),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Bienvenue sur Mutuelio !',
-                      style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Remplissez votre profil pour obtenir vos estimations de remboursement personnalisées.',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(fontSize: 14, color: Colors.white.withOpacity(0.9), height: 1.4),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-            ],
-
             // 1. Section Avatar (Centrée, sans icône edit)
             Center(
               child: Container(

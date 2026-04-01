@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'features/auth/screens/sign_in_screen.dart';
 import 'features/auth/screens/sign_up_screen.dart' as auth;
 import 'features/home/screens/home_screen.dart';
@@ -47,6 +48,7 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
   int _selectedIndex = 0;
+  bool _showOnboarding = false;
 
   @override
   void initState() {
@@ -70,20 +72,18 @@ class _MainPageState extends State<MainPage> {
           data['regime_assurance_maladie_id'] == null;
 
       if (isIncomplete && mounted) {
-        setState(() => _selectedIndex = 2);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Complétez votre profil pour accéder aux simulations'),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.teal.shade600,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            duration: const Duration(seconds: 4),
-          ),
-        );
+        setState(() => _showOnboarding = true);
       }
     } catch (e) {
       debugPrint('Erreur vérification profil: $e');
     }
+  }
+
+  void _dismissOnboarding() {
+    setState(() {
+      _showOnboarding = false;
+      _selectedIndex = 2;
+    });
   }
 
   void _onItemTapped(int index) {
@@ -96,20 +96,127 @@ class _MainPageState extends State<MainPage> {
       const HomeScreen(),
       HistoriquePage(isActive: _selectedIndex == 1),
       ProfileScreen(onProfileCompleted: () {
-        setState(() => _selectedIndex = 0);
+        setState(() {
+          _selectedIndex = 0;
+          _showOnboarding = false;
+        });
       }),
     ];
 
-    return Scaffold(
-      extendBody: true,
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: pages,
-      ),
-      bottomNavigationBar: BottomNavBar(
-        selectedIndex: _selectedIndex,
-        onItemTapped: _onItemTapped,
+    return Stack(
+      children: [
+        Scaffold(
+          extendBody: true,
+          body: IndexedStack(
+            index: _selectedIndex,
+            children: pages,
+          ),
+          bottomNavigationBar: BottomNavBar(
+            selectedIndex: _selectedIndex,
+            onItemTapped: _onItemTapped,
+          ),
+        ),
+        if (_showOnboarding) _buildOnboardingOverlay(context),
+      ],
+    );
+  }
+
+  Widget _buildOnboardingOverlay(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+
+    // Position du bouton Profil dans la navbar (3e element, a droite)
+    final navBarHeight = 56.0 + bottomPadding;
+    final profileButtonX = screenSize.width * (5 / 6);
+    final profileButtonY = screenSize.height - navBarHeight / 2 - bottomPadding / 2;
+    final spotlightCenter = Offset(profileButtonX, profileButtonY);
+    const spotlightRadius = 45.0;
+
+    return GestureDetector(
+      onTap: _dismissOnboarding,
+      child: Stack(
+        children: [
+          // Fond noir avec cercle decoupe
+          CustomPaint(
+            size: screenSize,
+            painter: _SpotlightPainter(
+              center: spotlightCenter,
+              radius: spotlightRadius,
+            ),
+          ),
+
+          // Texte + fleche au centre de l'ecran
+          Positioned(
+            left: 40,
+            right: 40,
+            bottom: navBarHeight + 80,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Commencez ici !',
+                  style: GoogleFonts.poppins(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    decoration: TextDecoration.none,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Renseignez votre mutuelle pour\ndécouvrir vos remboursements',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w400,
+                    color: Colors.white70,
+                    height: 1.5,
+                    decoration: TextDecoration.none,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: Colors.white,
+                  size: 40,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
+  }
+}
+
+class _SpotlightPainter extends CustomPainter {
+  final Offset center;
+  final double radius;
+
+  _SpotlightPainter({required this.center, required this.radius});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.saveLayer(Rect.fromLTWH(0, 0, size.width, size.height), Paint());
+
+    // Fond noir 75%
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, size.width, size.height),
+      Paint()..color = Colors.black.withAlpha(190),
+    );
+
+    // Decoupe cercle transparent
+    canvas.drawCircle(
+      center,
+      radius,
+      Paint()..blendMode = BlendMode.clear,
+    );
+
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _SpotlightPainter oldDelegate) {
+    return oldDelegate.center != center || oldDelegate.radius != radius;
   }
 }
