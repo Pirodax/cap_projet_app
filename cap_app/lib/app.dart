@@ -128,7 +128,7 @@ class _MainPageState extends State<MainPage> {
     // Position du bouton Profil dans la navbar (3e bouton sur 3, spaceAround)
     // spaceAround: espace = largeur / (n*2), centres = espace + i * (largeur/n)
     final navBarHeight = 56.0 + bottomPadding;
-    final profileButtonX = screenSize.width * (5 / 6) + 8;
+    final profileButtonX = screenSize.width * (5 / 6) + 4;
     final profileButtonY = screenSize.height - (navBarHeight / 2);
     final spotlightCenter = Offset(profileButtonX, profileButtonY);
     const spotlightRadius = 45.0;
@@ -154,7 +154,7 @@ class _MainPageState extends State<MainPage> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
               decoration: BoxDecoration(
-                color: Colors.black.withAlpha(160),
+                color: Colors.black.withAlpha(100),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Column(
