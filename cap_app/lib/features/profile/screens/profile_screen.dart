@@ -10,7 +10,9 @@ import '../models/regime.dart';
 import '../services/profile_service.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final VoidCallback? onProfileCompleted;
+
+  const ProfileScreen({super.key, this.onProfileCompleted});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -33,6 +35,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<Regime> _allRegimes = [];
 
   bool _loading = true;
+  bool _isFirstSetup = false;
 
   @override
   void initState() {
@@ -76,6 +79,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (_selectedMutuelleId != null) {
           _filteredFormules = _allFormules.where((f) => f.mutuelleId == _selectedMutuelleId).toList();
         }
+
+        _isFirstSetup = _selectedFormuleId == null || _selectedRegimeId == null;
+      } else {
+        _isFirstSetup = true;
       }
     } catch (e) {
       debugPrint('Erreur chargement des données initiales: $e');
@@ -130,14 +137,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       await supabase.from('user_infos').upsert(data, onConflict: 'user_id');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Profil mis à jour avec succès'),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.green.shade600,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        );
+        if (_isFirstSetup && _selectedFormuleId != null && _selectedRegimeId != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Profil complété ! Bienvenue sur Mutuelio'),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Colors.green.shade600,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          );
+          setState(() => _isFirstSetup = false);
+          widget.onProfileCompleted?.call();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Profil mis à jour avec succès'),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Colors.green.shade600,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          );
+        }
       }
     } catch (e) {
       debugPrint('Erreur maj profil: $e');
