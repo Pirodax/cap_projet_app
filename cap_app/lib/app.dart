@@ -125,10 +125,11 @@ class _MainPageState extends State<MainPage> {
     final screenSize = MediaQuery.of(context).size;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
-    // Position du bouton Profil dans la navbar (3e element, a droite)
+    // Position du bouton Profil dans la navbar (3e bouton sur 3, spaceAround)
+    // spaceAround: espace = largeur / (n*2), centres = espace + i * (largeur/n)
     final navBarHeight = 56.0 + bottomPadding;
-    final profileButtonX = screenSize.width * (5 / 6);
-    final profileButtonY = screenSize.height - navBarHeight / 2 - bottomPadding / 2;
+    final profileButtonX = screenSize.width * (5 / 6) + 8;
+    final profileButtonY = screenSize.height - (navBarHeight / 2);
     final spotlightCenter = Offset(profileButtonX, profileButtonY);
     const spotlightRadius = 45.0;
 
@@ -150,32 +151,39 @@ class _MainPageState extends State<MainPage> {
             left: 30,
             right: 30,
             bottom: navBarHeight + spotlightRadius + 40,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Commencez ici !',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                    decoration: TextDecoration.none,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              decoration: BoxDecoration(
+                color: Colors.black.withAlpha(160),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Commencez ici !',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.poppins(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      decoration: TextDecoration.none,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Renseignez votre mutuelle pour\ndécouvrir vos remboursements',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w400,
-                    color: Colors.white70,
-                    height: 1.5,
-                    decoration: TextDecoration.none,
+                  const SizedBox(height: 10),
+                  Text(
+                    'Renseignez votre mutuelle pour\ndécouvrir vos remboursements',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.poppins(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.white70,
+                      height: 1.5,
+                      decoration: TextDecoration.none,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
